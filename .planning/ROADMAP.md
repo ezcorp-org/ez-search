@@ -29,11 +29,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. Zvec Node.js SDK can create a collection, insert vectors, query by similarity, and delete entries on NixOS
   2. Transformers.js v4 can load a model and produce embeddings, with WebGPU attempted and WASM/CPU fallback confirmed working
   3. If either dependency fails, a concrete alternative is documented (LanceDB for Zvec, CPU-only for WebGPU) with a working proof
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: Zvec validation and vector DB wrapper spike
-- [ ] 01-02: WebGPU/Transformers.js inference validation spike
+- [ ] 01-01-PLAN.md -- Zvec CRUD validation at realistic scale (1000+ vectors, 768 dims)
+- [ ] 01-02-PLAN.md -- Transformers.js WebGPU/CPU inference with embedding quality validation
 
 ### Phase 2: Foundation and Infrastructure
 **Goal**: All infrastructure modules exist and are independently testable -- the project skeleton is ready for pipeline integration
