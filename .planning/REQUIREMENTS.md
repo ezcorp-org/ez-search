@@ -1,7 +1,7 @@
 # Requirements: ez-search
 
 **Defined:** 2026-02-22
-**Core Value:** Developers can semantically search their codebase locally with zero cloud dependencies — fast enough to be useful as a retrieval engine for AI assistants.
+**Core Value:** Developers can semantically search their codebase locally with zero cloud dependencies -- fast enough to be useful as a retrieval engine for AI assistants.
 
 ## v1 Requirements
 
@@ -32,7 +32,7 @@
 ### Infrastructure
 
 - [ ] **INFRA-01**: WebGPU inference with graceful fallback to WASM/CPU when GPU unavailable
-- [ ] **INFRA-02**: Lazy model loading — models loaded only after command is parsed (cold start <1.5s)
+- [ ] **INFRA-02**: Lazy model loading -- models loaded only after command is parsed (cold start <1.5s)
 - [ ] **INFRA-03**: Batch WebGPU inference in batches of 32 to avoid VRAM OOM
 - [ ] **INFRA-04**: Respect .gitignore and .cursorignore for file exclusion during indexing
 - [ ] **INFRA-05**: User can disable ignore file exclusion with a flag (e.g., `--no-ignore`)
@@ -104,4 +104,4 @@
 
 ---
 *Requirements defined: 2026-02-22*
-*Last updated: 2026-02-22 after initial definition*
+*Last updated: 2026-02-22 after roadmap creation*
