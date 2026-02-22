@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.planning/intel/
+.ez-search/
+spike/
+*.log
+.DS_Store
+.env
+.env.local

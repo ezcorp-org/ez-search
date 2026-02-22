@@ -1,0 +1,56 @@
+{
+  "name": "ez-search",
+  "version": "1.0.0",
+  "description": "Semantic codebase search with zero cloud dependencies",
+  "type": "module",
+  "main": "dist/cli/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "ez-search": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/cli/index.ts",
+    "test": "bun test",
+    "test:unit": "bun test tests/unit/",
+    "test:integration": "bun test tests/integration/"
+  },
+  "keywords": [
+    "semantic-search",
+    "codebase-search",
+    "embeddings",
+    "cli",
+    "local",
+    "code-search",
+    "vector-search"
+  ],
+  "author": "ezcorp-org",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ezcorp-org/ez-search.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ezcorp-org/ez-search/issues"
+  },
+  "homepage": "https://github.com/ezcorp-org/ez-search#readme",
+  "dependencies": {
+    "@huggingface/transformers": "^4.0.0-next.4",
+    "@zvec/zvec": "^0.2.0",
+    "commander": "^14.0.3",
+    "ignore": "^7.0.5",
+    "pdf-parse": "^2.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
