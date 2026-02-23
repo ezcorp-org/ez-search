@@ -28,7 +28,8 @@ program
   .option('-k, --top-k <n>', 'number of results to return', '10')
   .option('--dir <path>', 'scope search to a subdirectory')
   .option('--threshold <score>', 'minimum relevance score (0-1) to include')
-  .action(async (text: string, options: { format?: string; topK: string; dir?: string; threshold?: string }) => {
+  .option('--type <type>', 'search specific type only: code|text|image')
+  .action(async (text: string, options: { format?: string; topK: string; dir?: string; threshold?: string; type?: string }) => {
     const { runQuery } = await import('./commands/query-cmd.js');
     await runQuery(text, options);
   });
