@@ -13,8 +13,8 @@
 ### Indexing
 
 - [x] **IDX-01**: User can index a directory of code files (.ts, .js, .py, .go, .rs, .c, .cpp) into vector embeddings using Jina code model
-- [ ] **IDX-02**: User can index text/document files (.md, .txt, .pdf, .csv) using Nomic text model
-- [ ] **IDX-03**: User can index image files (.jpg, .png, .webp) using CLIP model
+- [x] **IDX-02**: User can index text/document files (.md, .txt, .pdf, .csv) using Nomic text model
+- [x] **IDX-03**: User can index image files (.jpg, .png, .webp) using CLIP model
 - [x] **IDX-04**: Incremental indexing skips unchanged files using mtime/size check + xxhash content verification
 - [ ] **IDX-05**: All index state stored in `~/.ez-search/<project>-<hash>/` directory in user home
 - [x] **IDX-06**: User can force a specific pipeline with `--type <code|text|image>` flag
@@ -24,7 +24,7 @@
 ### Search
 
 - [x] **SRCH-01**: User can query indexed embeddings with natural language and get ranked results
-- [ ] **SRCH-02**: Auto-detect which model pipeline to use based on indexed content types
+- [x] **SRCH-02**: Auto-detect which model pipeline to use based on indexed content types
 - [x] **SRCH-03**: Machine-readable output format: `File: <path> | Lines: <start>-<end> | Relevance: <score>`
 - [x] **SRCH-04**: User can control number of results with `--top-k` flag (default 10)
 - [x] **SRCH-05**: User can target a specific directory with `--dir` flag (default `.`)
@@ -77,15 +77,15 @@
 | VALID-01 | Phase 1 | Complete |
 | VALID-02 | Phase 1 | Complete |
 | IDX-01 | Phase 3 | Complete |
-| IDX-02 | Phase 5 | Pending |
-| IDX-03 | Phase 5 | Pending |
+| IDX-02 | Phase 5 | Complete |
+| IDX-03 | Phase 5 | Complete |
 | IDX-04 | Phase 3 | Complete |
 | IDX-05 | Phase 2 | Complete |
 | IDX-06 | Phase 3 | Complete |
 | IDX-07 | Phase 3 | Complete |
 | IDX-08 | Phase 2 | Complete |
 | SRCH-01 | Phase 4 | Complete |
-| SRCH-02 | Phase 5 | Pending |
+| SRCH-02 | Phase 5 | Complete |
 | SRCH-03 | Phase 4 | Complete |
 | SRCH-04 | Phase 4 | Complete |
 | SRCH-05 | Phase 4 | Complete |

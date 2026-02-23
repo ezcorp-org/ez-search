@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Foundation and Infrastructure** - Project structure, CLI scaffold, ignore parsing, model loader, vector DB wrapper
 - [x] **Phase 3: Code Indexing Pipeline** - End-to-end indexing with Jina code model, chunking, batching, incremental caching
 - [x] **Phase 4: Search and Query** - Natural language query with ranked, machine-readable results
-- [ ] **Phase 5: Multi-Model Routing** - Extend to text (Nomic) and image (CLIP) models with auto-detection
+- [x] **Phase 5: Multi-Model Routing** - Extend to text (Nomic) and image (CLIP) models with auto-detection
 - [ ] **Phase 6: Status and Polish** - Status command, error handling, edge cases
 
 ## Phase Details
@@ -94,9 +94,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 05-01-PLAN.md -- Text chunker service with paragraph-boundary splitting and PDF extraction
-- [ ] 05-02-PLAN.md -- CLIP image embedding service with fp32 vision model
-- [ ] 05-03-PLAN.md -- Auto-detection routing: multi-type index and grouped multi-collection query
+- [x] 05-01-PLAN.md -- Text chunker service with paragraph-boundary splitting and PDF extraction
+- [x] 05-02-PLAN.md -- CLIP image embedding service with fp32 vision model
+- [x] 05-03-PLAN.md -- Auto-detection routing: multi-type index and grouped multi-collection query
 
 ### Phase 6: Status and Polish
 **Goal**: User has visibility into their index state and the tool handles edge cases gracefully
@@ -121,5 +121,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. Foundation and Infrastructure | 3/3 | Complete | 2026-02-22 |
 | 3. Code Indexing Pipeline | 3/3 | Complete | 2026-02-22 |
 | 4. Search and Query | 1/1 | Complete | 2026-02-22 |
-| 5. Multi-Model Routing | 0/3 | Not started | - |
+| 5. Multi-Model Routing | 3/3 | Complete | 2026-02-23 |
 | 6. Status and Polish | 0/1 | Not started | - |
