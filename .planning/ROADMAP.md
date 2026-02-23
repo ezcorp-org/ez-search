@@ -18,6 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Search and Query** - Natural language query with ranked, machine-readable results
 - [x] **Phase 5: Multi-Model Routing** - Extend to text (Nomic) and image (CLIP) models with auto-detection
 - [x] **Phase 6: Status and Polish** - Status command, error handling, edge cases
+- [ ] **Phase 7: Gap Closure** - Query optimization, EMPTY_DIR wiring, code hygiene
 
 ## Phase Details
 
@@ -110,10 +111,24 @@ Plans:
 Plans:
 - [x] 06-01-PLAN.md -- Status command implementation with JSON/text output, shared error utility, error normalization across all commands
 
+### Phase 7: Gap Closure
+**Goal**: Close audit gaps — query only loads models for indexed types, EMPTY_DIR error fires, dead code removed
+**Depends on**: Phase 6
+**Requirements**: SRCH-02 (partial → satisfied)
+**Gap Closure**: Closes gaps from v1-MILESTONE-AUDIT.md
+**Success Criteria** (what must be TRUE):
+  1. Query command pre-checks manifest to determine which model types are indexed, and only loads models for types that have data
+  2. Running `ez-search index .` on a directory with no supported files emits an EMPTY_DIR structured error (not silent success)
+  3. No dead exports, dead dependencies, or shadowed types remain in the codebase
+**Plans**: 1 plan
+
+Plans:
+- [ ] 07-01-PLAN.md -- Query manifest pre-detection, EMPTY_DIR wiring, dead code cleanup
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -123,3 +138,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 4. Search and Query | 1/1 | Complete | 2026-02-22 |
 | 5. Multi-Model Routing | 3/3 | Complete | 2026-02-23 |
 | 6. Status and Polish | 1/1 | Complete | 2026-02-23 |
+| 7. Gap Closure | 0/1 | Pending | — |
