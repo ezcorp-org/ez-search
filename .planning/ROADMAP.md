@@ -91,12 +91,12 @@ Plans:
   2. Running `ez-search index .` on a directory with .jpg, .png, and .webp files indexes them using the CLIP model
   3. File type is auto-detected by extension; code, text, and image files are routed to their respective models without user flags
   4. Query auto-detects which collections have data and searches across all indexed types
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: Nomic text model integration and text-specific chunking
-- [ ] 05-02: CLIP image model integration and image preprocessing
-- [ ] 05-03: Auto-detection routing for index and query commands
+- [ ] 05-01-PLAN.md -- Text chunker service with paragraph-boundary splitting and PDF extraction
+- [ ] 05-02-PLAN.md -- CLIP image embedding service with fp32 vision model
+- [ ] 05-03-PLAN.md -- Auto-detection routing: multi-type index and grouped multi-collection query
 
 ### Phase 6: Status and Polish
 **Goal**: User has visibility into their index state and the tool handles edge cases gracefully
