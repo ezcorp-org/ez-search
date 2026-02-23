@@ -5,33 +5,34 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** Developers can semantically search their codebase locally with zero cloud dependencies -- fast enough to be useful as a retrieval engine for AI assistants.
-**Current focus:** Phase 1: Validation Spike (COMPLETE)
+**Current focus:** Phase 2: Foundation and Infrastructure (in progress)
 
 ## Current Position
 
-Phase: 1 of 6 (Validation Spike)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-02-23 -- Completed 01-02-PLAN.md (Transformers.js inference spike)
+Phase: 2 of 6 (Foundation and Infrastructure)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-02-23 -- Completed 02-01-PLAN.md (CLI scaffold, shared types, path utilities)
 
-Progress: [██░░░░░░░░] 17%
+Progress: [███░░░░░░░] 25%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 31 min
-- Total execution time: 1.0 hours
+- Total plans completed: 3
+- Average duration: 21 min
+- Total execution time: 1.1 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-validation-spike | 2/2 | 62 min | 31 min |
+| 02-foundation-and-infrastructure | 1/3 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 22 min, 40 min
-- Trend: +18 min (model downloads on first run)
+- Last 5 plans: 22 min, 40 min, 2 min
+- Trend: -18 min (scaffold tasks are fast)
 
 *Updated after each plan completion*
 
@@ -52,6 +53,10 @@ Recent decisions affecting current work:
 - **Model selection confirmed** -- jinaai/jina-embeddings-v2-base-code (code, 768-dim) and nomic-ai/nomic-embed-text-v1.5 (text, 768-dim, task prefixes required).
 - **device: 'cpu' not 'wasm'** -- For Node.js Transformers.js fallback; 'wasm' is browser-only.
 - **Official model IDs only** -- Xenova/ mirrors return 401; use jinaai/ and nomic-ai/ directly.
+- **Dynamic import() for lazy loading** -- All CLI command handlers use `await import('./commands/xxx.js')` to defer heavy module loading. Compiled --help runs in 22ms.
+- **crypto.createHash not crypto.hash** -- Use `crypto.createHash('sha256')` (Node 20+) not `crypto.hash()` (Node 21.7+ only) for compatibility with engines>=20.
+- **tsconfig rootDir = src** -- Changed from `.` to `src` to prevent spike/ files from appearing in dist/ output.
+- **Commander --no-ignore convention** -- `--no-ignore` flag yields `options.ignore = false` (boolean); true = use ignore files, false = disabled. Wiring to scanFiles deferred to Phase 3.
 
 ### Pending Todos
 
@@ -65,5 +70,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-23
-Stopped at: Completed 01-02-PLAN.md -- Transformers.js inference spike. Phase 1 COMPLETE.
+Stopped at: Completed 02-01-PLAN.md -- CLI scaffold with lazy-loaded commands, shared types, and path resolution.
 Resume file: None
