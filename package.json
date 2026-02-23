@@ -1,0 +1,22 @@
+{
+  "name": "ez-search",
+  "version": "1.0.0",
+  "description": "Semantic codebase search with zero cloud dependencies",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@huggingface/transformers": "^4.0.0-next.4",
+    "@zvec/zvec": "^0.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
