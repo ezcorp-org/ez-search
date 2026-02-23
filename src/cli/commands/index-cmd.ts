@@ -25,6 +25,7 @@ import * as path from 'path';
 import * as fsp from 'fs/promises';
 import { rmSync } from 'fs';
 import type { FileType, ScannedFile } from '../../types.js';
+import { type ProgressReporter } from '../progress.js';
 
 const BATCH_SIZE = 32;
 
@@ -55,8 +56,9 @@ async function runTextEmbeddingPipeline(opts: {
   hashContent: (buf: Buffer) => string;
   hashText: (text: string) => string;
   makeChunkId: (relPath: string, idx: number) => string;
+  progress: ProgressReporter;
 }): Promise<{ filesIndexed: number; filesSkipped: number; chunksCreated: number; chunksReused: number; chunksRemoved: number }> {
-  const { type, files, col768, manifest, hashContent, hashText, makeChunkId } = opts;
+  const { type, files, col768, manifest, hashContent, hashText, makeChunkId, progress } = opts;
 
   let filesIndexed = 0;
   let filesSkipped = 0;
@@ -67,7 +69,9 @@ async function runTextEmbeddingPipeline(opts: {
   // Determine which files need processing (mtime+size fast path, hash confirmation)
   const filesToProcess: ScannedFile[] = [];
 
-  for (const file of files) {
+  for (let fi = 0; fi < files.length; fi++) {
+    const file = files[fi];
+    progress.update(`${type}: checking files`, fi + 1, files.length);
     const existing = manifest.files[file.relativePath];
     if (existing && existing.mtime === file.mtimeMs && existing.size === file.sizeBytes) {
       filesSkipped++;
@@ -254,13 +258,17 @@ async function runTextEmbeddingPipeline(opts: {
 
   // Embed all pending chunks
   if (allPendingChunks.length > 0) {
+    progress.update(`${type}: loading model...`);
     const { createEmbeddingPipeline } = await import('../../services/model-router.js');
     pipe = await createEmbeddingPipeline(type);
 
     // Nomic requires "search_document: " prefix on indexed documents
     const prefix = type === 'text' ? 'search_document: ' : '';
+    const totalBatches = Math.ceil(allPendingChunks.length / BATCH_SIZE);
 
     for (let batchStart = 0; batchStart < allPendingChunks.length; batchStart += BATCH_SIZE) {
+      const batchNum = Math.floor(batchStart / BATCH_SIZE) + 1;
+      progress.update(`${type}: embedding`, batchNum, totalBatches);
       const batch = allPendingChunks.slice(batchStart, batchStart + BATCH_SIZE);
       const texts = batch.map((c) => prefix + c.text);
       const embeddings = await pipe.embed(texts);
@@ -315,6 +323,11 @@ export async function runIndex(
   options: { ignore: boolean; type?: string; quiet?: boolean; clear?: boolean; format?: string }
 ): Promise<IndexStats> {
   const startTime = Date.now();
+  const { ProgressReporter } = await import('../progress.js');
+  const progress = new ProgressReporter({
+    quiet: options.quiet,
+    json: options.format !== 'text',
+  });
 
   try {
     // 1. Resolve path
@@ -366,6 +379,7 @@ export async function runIndex(
       const scannedFiles: ScannedFile[] = [];
       for await (const file of scanFiles(absPath, { useIgnoreFiles: options.ignore, typeFilter: fileType })) {
         scannedFiles.push(file);
+        progress.update(`scanning ${fileType} files... ${scannedFiles.length} found`);
       }
 
       totalFilesScanned += scannedFiles.length;
@@ -409,6 +423,7 @@ export async function runIndex(
           hashContent,
           hashText,
           makeChunkId,
+          progress,
         });
 
         totalFilesIndexed += result.filesIndexed;
@@ -465,10 +480,13 @@ export async function runIndex(
 
         if (filesToProcess.length > 0) {
           // Load CLIP pipeline once for the batch
+          progress.update('image: loading model...');
           const { createImageEmbeddingPipeline } = await import('../../services/image-embedder.js');
           const imagePipeline = await createImageEmbeddingPipeline();
 
-          for (const file of filesToProcess) {
+          for (let imgIdx = 0; imgIdx < filesToProcess.length; imgIdx++) {
+            const file = filesToProcess[imgIdx];
+            progress.update('image: embedding', imgIdx + 1, filesToProcess.length);
             const buf = await fsp.readFile(file.absolutePath);
             const fileHash = hashContent(buf);
 
@@ -512,6 +530,7 @@ export async function runIndex(
     }
 
     // 6. Optimize, close collections, THEN save manifest
+    progress.update('optimizing index...');
     col768.optimize();
     col768.close();
     if (imageFilesProcessed) {
@@ -519,6 +538,7 @@ export async function runIndex(
     }
     col512.close();
     saveManifest(absPath, manifest);
+    progress.done();
 
     // 7. Output results
     const durationMs = Date.now() - startTime;
@@ -571,6 +591,7 @@ export async function runIndex(
 
     return output as IndexStats;
   } catch (err) {
+    progress.done();
     const { emitError } = await import('../errors.js');
     const message = err instanceof Error ? err.message : String(err);
     return emitError(
