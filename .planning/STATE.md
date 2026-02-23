@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-22)
 ## Current Position
 
 Phase: 2 of 6 (Foundation and Infrastructure)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-02-23 -- Completed 02-02-PLAN.md (file scanner service with ignore filtering)
+Plan: 3 of 3 in current phase
+Status: Phase complete
+Last activity: 2026-02-22 -- Completed 02-03-PLAN.md (Zvec collection wrapper and model router)
 
-Progress: [████░░░░░░] 33%
+Progress: [█████░░░░░] 42%
 
 ## Performance Metrics
 
@@ -28,11 +28,11 @@ Progress: [████░░░░░░] 33%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-validation-spike | 2/2 | 62 min | 31 min |
-| 02-foundation-and-infrastructure | 2/3 | 4 min | 2 min |
+| 02-foundation-and-infrastructure | 3/3 | 29 min | ~10 min |
 
 **Recent Trend:**
-- Last 5 plans: 40 min, 2 min, 2 min
-- Trend: fast (scaffold and service tasks)
+- Last 5 plans: 40 min, 2 min, 2 min, 25 min
+- Trend: fast (service implementation tasks)
 
 *Updated after each plan completion*
 
@@ -60,6 +60,9 @@ Recent decisions affecting current work:
 - **Scanner gitignore dir semantics** -- Check both `relPath+'/'` and `relPath` for directories; both patterns (`dist` and `dist/`) must be respected.
 - **Scanner always excludes built-ins** -- Built-in exclusions active even when `useIgnoreFiles: false`; only `.gitignore`/`.cursorignore` are disabled.
 - **Scanner skips symlinks** -- No explicit cycle detection needed; symlinks are skipped entirely.
+- **VectorCollection close() is a no-op** -- Zvec handles GC-cleaned; use destroySync() only to delete from disk.
+- **embed() uses Promise.all** -- Batch parallelism on CPU via Promise.all; ONNX handles internal concurrency.
+- **tsx CJS conflict in /tmp** -- Files in /tmp without package.json treated as CJS by tsx, rejecting top-level await. Use async main() wrapper or .mts extension.
 
 ### Pending Todos
 
@@ -72,6 +75,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-23
-Stopped at: Completed 02-02-PLAN.md -- File scanner service with multi-layered ignore filtering and type classification.
+Last session: 2026-02-22
+Stopped at: Completed 02-03-PLAN.md -- Vector DB wrapper (Zvec collections) and model router (Transformers.js pipeline factory with WebGPU fallback). Phase 2 complete.
 Resume file: None
