@@ -15,8 +15,6 @@ export interface ScanOptions {
 
 export type ModelBackend = 'webgpu' | 'cpu';
 
-export type CollectionName = 'col-768' | 'col-512';
-
 export const EXTENSION_MAP: Record<string, FileType> = {
   // Code
   '.ts': 'code',

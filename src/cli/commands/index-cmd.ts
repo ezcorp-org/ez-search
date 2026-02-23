@@ -24,18 +24,11 @@
 import * as path from 'path';
 import * as fsp from 'fs/promises';
 import { rmSync } from 'fs';
-import type { FileType } from '../../types.js';
+import type { FileType, ScannedFile } from '../../types.js';
 
 const BATCH_SIZE = 32;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
-type ScannedFile = {
-  absolutePath: string;
-  relativePath: string;
-  sizeBytes: number;
-  mtimeMs: number;
-};
 
 type PendingChunk = {
   relPath: string;
