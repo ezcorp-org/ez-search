@@ -4,7 +4,15 @@
   "description": "Semantic codebase search with zero cloud dependencies",
   "type": "module",
   "main": "dist/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "ez-search": "./dist/cli/index.js"
+  },
   "scripts": {
+    "build": "tsc",
+    "start": "tsx src/cli/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,9 +20,14 @@
   "license": "ISC",
   "dependencies": {
     "@huggingface/transformers": "^4.0.0-next.4",
-    "@zvec/zvec": "^0.2.0"
+    "@inquirer/prompts": "^8.3.0",
+    "@zvec/zvec": "^0.2.0",
+    "cli-progress": "^3.12.0",
+    "commander": "^14.0.3",
+    "ignore": "^7.0.5"
   },
   "devDependencies": {
+    "@types/cli-progress": "^3.11.6",
     "@types/node": "^25.3.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
