@@ -12,7 +12,7 @@
  * Model weights are cached in ~/.ez-search/models/ alongside text/code models.
  */
 
-import { CLIPVisionModelWithProjection, AutoProcessor, RawImage, env } from '@huggingface/transformers';
+import { CLIPVisionModelWithProjection, CLIPTextModelWithProjection, AutoProcessor, AutoTokenizer, RawImage, env } from '@huggingface/transformers';
 import { resolveModelCachePath } from '../config/paths.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -21,6 +21,17 @@ const CLIP_MODEL_ID = 'Xenova/clip-vit-base-patch32';
 const CLIP_DIM = 512;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Text-to-image embedding pipeline using CLIP's text encoder.
+ * Encodes text queries into the same 512-dim space as CLIP image embeddings.
+ */
+export interface ClipTextPipeline {
+  embedText(texts: string[]): Promise<Float32Array[]>;
+  readonly modelId: string;
+  readonly dim: number;
+  dispose(): Promise<void>;
+}
 
 /**
  * Embedding pipeline for image files.
@@ -35,6 +46,23 @@ export interface ImageEmbeddingPipeline {
   readonly dim: number;
   /** Release resources held by the vision model */
   dispose(): Promise<void>;
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * L2-normalize a vector in-place.
+ *
+ * CLIPVisionModelWithProjection and CLIPTextModelWithProjection do NOT
+ * normalize their output — only the full CLIPModel does. Without this,
+ * cosine distances in Zvec are meaningless (all scores collapse to ~0.21).
+ */
+function l2Normalize(vec: Float32Array): Float32Array {
+  let norm = 0;
+  for (let i = 0; i < vec.length; i++) norm += vec[i] * vec[i];
+  norm = Math.sqrt(norm);
+  if (norm > 0) for (let i = 0; i < vec.length; i++) vec[i] /= norm;
+  return vec;
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -80,13 +108,55 @@ export async function createImageEmbeddingPipeline(): Promise<ImageEmbeddingPipe
       // Run the vision encoder — output.image_embeds is a [1, 512] Tensor
       const output = await visionModel(inputs);
 
-      // Extract the single embedding vector (first 512 values = one image)
-      return new Float32Array(output.image_embeds.data.slice(0, CLIP_DIM));
+      // Extract and L2-normalize (projection models don't normalize)
+      return l2Normalize(new Float32Array(output.image_embeds.data.slice(0, CLIP_DIM)));
     },
 
     async dispose(): Promise<void> {
       if (typeof (visionModel as unknown as Record<string, unknown>).dispose === 'function') {
         await (visionModel as unknown as { dispose: () => Promise<unknown> }).dispose();
+      }
+    },
+  };
+}
+
+/**
+ * Create a ClipTextPipeline backed by CLIP ViT-B/32 (fp32).
+ *
+ * Loads AutoTokenizer and CLIPTextModelWithProjection in parallel.
+ * Used for text-to-image search: encode query text into CLIP's 512-dim space,
+ * then find nearest image embeddings.
+ */
+export async function createClipTextPipeline(): Promise<ClipTextPipeline> {
+  env.cacheDir = resolveModelCachePath();
+  env.allowRemoteModels = true;
+
+  const [tokenizer, textModel] = await Promise.all([
+    AutoTokenizer.from_pretrained(CLIP_MODEL_ID),
+    CLIPTextModelWithProjection.from_pretrained(CLIP_MODEL_ID, { dtype: 'fp32' }),
+  ]);
+
+  console.error(`[image-embedder] Loaded CLIP text model (fp32)`);
+
+  return {
+    modelId: CLIP_MODEL_ID,
+    dim: CLIP_DIM,
+
+    async embedText(texts: string[]): Promise<Float32Array[]> {
+      const inputs = tokenizer(texts, { padding: true, truncation: true });
+      const output = await textModel(inputs);
+      const data = output.text_embeds.data as Float32Array;
+
+      const embeddings: Float32Array[] = [];
+      for (let i = 0; i < texts.length; i++) {
+        embeddings.push(l2Normalize(new Float32Array(data.slice(i * CLIP_DIM, (i + 1) * CLIP_DIM))));
+      }
+      return embeddings;
+    },
+
+    async dispose(): Promise<void> {
+      if (typeof (textModel as unknown as Record<string, unknown>).dispose === 'function') {
+        await (textModel as unknown as { dispose: () => Promise<unknown> }).dispose();
       }
     },
   };
