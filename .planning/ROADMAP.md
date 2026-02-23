@@ -44,12 +44,12 @@ Plans:
   2. `.ez-search/` directory is created at index root with separate vector collections for 768-dim and 512-dim models
   3. File scanner respects .gitignore and .cursorignore rules, and `--no-ignore` flag disables exclusion
   4. Model router loads the correct model on first use and falls back gracefully from WebGPU to WASM/CPU
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Project scaffold, types, and CLI skeleton with lazy loading
-- [ ] 02-02: File scanner with ignore parsing and type classification
-- [ ] 02-03: Vector DB wrapper and model router services
+- [ ] 02-01-PLAN.md -- Project scaffold, types, path utilities, and CLI skeleton with lazy loading
+- [ ] 02-02-PLAN.md -- File scanner with ignore parsing and type classification
+- [ ] 02-03-PLAN.md -- Vector DB wrapper and model router services
 
 ### Phase 3: Code Indexing Pipeline
 **Goal**: User can index a codebase and see it stored as searchable vector embeddings with incremental caching
