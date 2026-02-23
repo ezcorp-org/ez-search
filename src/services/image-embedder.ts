@@ -13,7 +13,6 @@
  */
 
 import { CLIPVisionModelWithProjection, AutoProcessor, RawImage, env } from '@huggingface/transformers';
-import { pathToFileURL } from 'node:url';
 import { resolveModelCachePath } from '../config/paths.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -28,8 +27,8 @@ const CLIP_DIM = 512;
  * One call to embedImage() returns one 512-dim Float32Array.
  */
 export interface ImageEmbeddingPipeline {
-  /** Generate a 512-dim embedding for a single image file. */
-  embedImage(absolutePath: string): Promise<Float32Array>;
+  /** Generate a 512-dim embedding from an image buffer. */
+  embedImage(buf: Buffer | Uint8Array): Promise<Float32Array>;
   /** The HuggingFace model ID that was loaded */
   readonly modelId: string;
   /** Embedding dimension — always 512 for CLIP ViT-B/32 */
@@ -70,10 +69,10 @@ export async function createImageEmbeddingPipeline(): Promise<ImageEmbeddingPipe
     modelId: CLIP_MODEL_ID,
     dim: CLIP_DIM,
 
-    async embedImage(absolutePath: string): Promise<Float32Array> {
-      // pathToFileURL properly encodes spaces and special characters in file paths.
-      const url = absolutePath.startsWith('file://') ? absolutePath : pathToFileURL(absolutePath).href;
-      const image = await RawImage.fromURL(url);
+    async embedImage(buf: Buffer | Uint8Array): Promise<Float32Array> {
+      // Use fromBlob instead of file:// URLs to avoid encoding issues with
+      // special Unicode characters in filenames (e.g. macOS narrow no-break spaces).
+      const image = await RawImage.fromBlob(new Blob([new Uint8Array(buf)]));
 
       // Preprocess: resize, normalize, convert to tensor expected by CLIP
       const inputs = await processor(image);

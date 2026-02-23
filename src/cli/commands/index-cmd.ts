@@ -470,7 +470,7 @@ export async function runIndex(
             const buf = await fsp.readFile(file.absolutePath);
             const fileHash = hashContent(buf);
 
-            const embedding = await imagePipeline.embedImage(file.absolutePath);
+            const embedding = await imagePipeline.embedImage(buf);
             const chunkId = makeChunkId(file.relativePath, 0);
 
             col512.insert(chunkId, embedding, {
