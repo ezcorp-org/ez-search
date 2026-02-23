@@ -192,9 +192,7 @@ function createCollection(storageDir: string, name: string, dim: number): Vector
     },
 
     close(): void {
-      // Zvec collections are closed/cleaned up when the handle goes out of scope.
-      // Call destroySync only if you want to delete the data from disk.
-      // For normal close, we do nothing — the GC handles cleanup.
+      handle.closeSync();
     },
   };
 }
@@ -228,4 +226,17 @@ export function openProjectCollections(projectDir: string): ProjectCollections {
   const col512 = createCollection(storageDir, 'col-512', 512);
 
   return { col768, col512, storagePath: storageDir };
+}
+
+/**
+ * Open a single vector collection by name.
+ * Use this when you only need one collection (e.g. query only needs col-768).
+ */
+export function openCollection(projectDir: string, name: 'col-768' | 'col-512'): VectorCollection {
+  const storageDir = resolveProjectStoragePath(projectDir);
+  mkdirSync(storageDir, { recursive: true });
+  ensureSchemaVersion(storageDir);
+
+  const dim = name === 'col-768' ? 768 : 512;
+  return createCollection(storageDir, name, dim);
 }
