@@ -24,7 +24,8 @@
     "@zvec/zvec": "^0.2.0",
     "cli-progress": "^3.12.0",
     "commander": "^14.0.3",
-    "ignore": "^7.0.5"
+    "ignore": "^7.0.5",
+    "pdf-parse": "^2.4.5"
   },
   "devDependencies": {
     "@types/cli-progress": "^3.11.6",
