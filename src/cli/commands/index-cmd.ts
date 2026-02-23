@@ -494,6 +494,16 @@ export async function runIndex(
       }
     }
 
+    // 5b. Check for empty directory (no supported files found)
+    if (totalFilesScanned === 0) {
+      const { emitError } = await import('../errors.js');
+      const format: 'json' | 'text' = options.format === 'text' ? 'text' : 'json';
+      emitError(
+        { code: 'EMPTY_DIR', message: 'No supported files found in directory', suggestion: 'Ensure the directory contains supported file types (.ts, .js, .py, .go, .rs, .c, .cpp, .md, .txt, .jpg, .png, .webp)' },
+        format
+      );
+    }
+
     // 6. Optimize THEN save manifest
     col768.optimize();
     if (imageFilesProcessed) {
