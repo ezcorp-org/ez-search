@@ -45,7 +45,8 @@ export async function runQuery(
     if (options.type) {
       typesToQuery = [options.type as QueryType];
     } else {
-      // Auto-detect: inspect manifest file extensions to find which types were indexed
+      // Pre-detect indexed types from manifest: only load models for types that have data.
+      // This avoids loading Jina when only text is indexed (or Nomic when only code is indexed).
       const { EXTENSION_MAP } = await import('../../types.js');
       const indexedTypes = new Set<string>();
       for (const filePath of Object.keys(manifest.files)) {
@@ -57,6 +58,15 @@ export async function runQuery(
       if (indexedTypes.has('code')) typesToQuery.push('code');
       if (indexedTypes.has('text')) typesToQuery.push('text');
       // image queries from text not supported — skip even if images are indexed
+    }
+
+    // Early exit when manifest exists but has no queryable types (e.g., after --clear without re-indexing)
+    if (typesToQuery.length === 0 && !options.type) {
+      const { emitError } = await import('../errors.js');
+      emitError(
+        { code: 'NO_INDEX', message: 'No indexed content found', suggestion: 'Run `ez-search index .` first' },
+        options.format === 'text' ? 'text' : 'json'
+      );
     }
 
     // Handle unsupported image query
