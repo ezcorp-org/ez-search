@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** Developers can semantically search their codebase locally with zero cloud dependencies -- fast enough to be useful as a retrieval engine for AI assistants.
-**Current focus:** Phase 6: Status and Polish (COMPLETE — verified)
+**Current focus:** Phase 7: Gap Closure (COMPLETE)
 
 ## Current Position
 
-Phase: 6 of 6 (Status and Polish)
+Phase: 7 of 7 (Gap Closure)
 Plan: 1 of 1 in current phase
-Status: Phase complete — all plans executed, verified, gap closed
-Last activity: 2026-02-23 -- Phase 6 verified, gap fixed (EMPTY_DIR error wiring)
+Status: Phase complete — all plans executed, v1 milestone audit closed
+Last activity: 2026-02-23 -- Phase 7 complete: dead code removed, query hardened
 
-Progress: [██████████] 100% (12/12 plans complete)
+Progress: [██████████] 100% (13/13 plans complete)
 
 ## Performance Metrics
 
@@ -83,6 +83,8 @@ Recent decisions affecting current work:
 - **--format replaces --pretty** -- Both index and query commands use `--format text` for human-readable output; --pretty removed.
 - **emitError() returns never** -- Shared CLI error utility; JSON to stdout, text to stderr; return type `never` so TypeScript infers unreachable code after call.
 - **JSON errors to stdout** -- Same channel as normal JSON output so agent pipelines don't need to merge stdout+stderr.
+- **ScannedFile imported from types.ts** -- No local shadows; index-cmd.ts imports ScannedFile from types.ts. The extra `.type` field is simply unused.
+- **NO_INDEX early exit skips explicit --type** -- Query command emits NO_INDEX when manifest is empty and no --type flag; explicit --type bypasses early exit (hits UNSUPPORTED_TYPE instead).
 - **existsSync before loadManifest** -- loadManifest() silently returns empty manifest for missing files; always check existence first in status command.
 - **byType always present** -- Status byType object always has code/text/image keys (even zeros) for predictable agent parsing.
 - **Text chunking: MAX_CHUNK_CHARS=1600** -- ~400 Nomic tokens per chunk; MIN_CHUNK_CHARS=200 prevents tiny fragments.
@@ -105,5 +107,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-23
-Stopped at: Phase 6 complete — all phases executed. Milestone complete.
+Stopped at: Phase 7 complete — gap closure finished. All v1 milestone audit items closed.
 Resume file: None
