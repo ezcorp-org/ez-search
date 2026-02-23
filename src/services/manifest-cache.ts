@@ -1,6 +1,8 @@
 /**
  * Manifest cache service — tracks which files have been indexed and their chunk records.
  *
+ * Manifest is stored at <projectDir>/.ez-search/manifest.json.
+ *
  * Provides fast incremental indexing:
  *   - mtime+size fast path avoids SHA-256 hashing for unchanged files
  *   - SHA-256 confirmation catches same-size edits
@@ -8,13 +10,14 @@
  */
 
 import crypto from 'node:crypto';
-import { readFileSync, writeFileSync, renameSync, unlinkSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, renameSync, unlinkSync, existsSync, mkdirSync } from 'fs';
 import * as path from 'path';
+import { resolveProjectStoragePath } from '../config/paths.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 export const MANIFEST_VERSION = 1;
-export const MANIFEST_FILENAME = '.ez-search-cache';
+export const MANIFEST_FILENAME = 'manifest.json';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -38,6 +41,12 @@ export interface Manifest {
   files: Record<string, ManifestEntry>;
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function manifestPath(projectDir: string): string {
+  return path.join(resolveProjectStoragePath(projectDir), MANIFEST_FILENAME);
+}
+
 // ── Load / Save ───────────────────────────────────────────────────────────────
 
 /**
@@ -45,7 +54,7 @@ export interface Manifest {
  * doesn't exist, has corrupt JSON, or has a mismatched version.
  */
 export function loadManifest(projectDir: string): Manifest {
-  const filePath = path.join(projectDir, MANIFEST_FILENAME);
+  const filePath = manifestPath(projectDir);
   if (!existsSync(filePath)) {
     return { version: MANIFEST_VERSION, files: {} };
   }
@@ -63,11 +72,14 @@ export function loadManifest(projectDir: string): Manifest {
 }
 
 /**
- * Write manifest atomically: write to `.ez-search-cache.tmp` then rename.
+ * Write manifest atomically: write to `manifest.json.tmp` then rename.
  * This prevents partial writes on crash.
+ * Creates <projectDir>/.ez-search/ if it doesn't exist.
  */
 export function saveManifest(projectDir: string, manifest: Manifest): void {
-  const filePath = path.join(projectDir, MANIFEST_FILENAME);
+  const storageDir = resolveProjectStoragePath(projectDir);
+  mkdirSync(storageDir, { recursive: true });
+  const filePath = manifestPath(projectDir);
   const tmpPath = filePath + '.tmp';
   writeFileSync(tmpPath, JSON.stringify(manifest));
   renameSync(tmpPath, filePath);
@@ -77,7 +89,7 @@ export function saveManifest(projectDir: string, manifest: Manifest): void {
  * Delete the manifest cache file if it exists.
  */
 export function clearManifest(projectDir: string): void {
-  const filePath = path.join(projectDir, MANIFEST_FILENAME);
+  const filePath = manifestPath(projectDir);
   try {
     unlinkSync(filePath);
   } catch {

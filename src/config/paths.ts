@@ -1,16 +1,12 @@
-import * as crypto from 'crypto';
 import * as os from 'os';
 import * as path from 'path';
 
 /**
  * Resolve the storage path for a given project directory.
- * Format: ~/.ez-search/<basename>-<8char-hash>/
+ * Format: <projectDir>/.ez-search/
  */
 export function resolveProjectStoragePath(projectDir: string): string {
-  const resolved = path.resolve(projectDir);
-  const hash = crypto.createHash('sha256').update(resolved).digest('hex').slice(0, 8);
-  const basename = path.basename(resolved);
-  return path.join(os.homedir(), '.ez-search', `${basename}-${hash}`);
+  return path.join(path.resolve(projectDir), '.ez-search');
 }
 
 /**
