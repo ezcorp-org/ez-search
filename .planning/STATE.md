@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-22)
 ## Current Position
 
 Phase: 3 of 6 (Code Indexing Pipeline)
-Plan: 2 of N in current phase
-Status: In progress — 03-02 complete (chunker service)
-Last activity: 2026-02-22 -- Completed 03-02-PLAN.md (chunker service)
+Plan: 1 of N in current phase (03-01 complete)
+Status: In progress — 03-01 complete (manifest cache + foundation updates)
+Last activity: 2026-02-23 -- Completed 03-01-PLAN.md (manifest cache service)
 
 Progress: [█████░░░░░] 40%
 
@@ -66,6 +66,9 @@ Recent decisions affecting current work:
 - **tsx CJS conflict in /tmp** -- Files in /tmp without package.json treated as CJS by tsx, rejecting top-level await. Use async main() wrapper or .mts extension.
 - **Tokenizer singleton pattern** -- Load AutoTokenizer once via loadTokenizer(), pass to all chunkFile() calls. Loading per-file costs ~1s each.
 - **encode() returns array-like not plain Array** -- Jina tokenizer encode() has .length but Array.isArray() returns false. Use Array.from() for slice(), or cast `(ids as unknown as { length: number }).length` for counting.
+- **Manifest version mismatch → empty manifest** -- No migration; simpler to re-index than handle partial compatibility.
+- **makeChunkId format** -- `<12-char sha256-path-hash>_<4-digit-index>`, no colons (Zvec constraint).
+- **Vector DB schema v2** -- chunkText STRING field added; ensureSchemaVersion() auto-wipes col-768/col-512 on mismatch.
 
 ### Pending Todos
 
@@ -78,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-22
-Stopped at: Completed 03-02-PLAN.md — chunker service (src/services/chunker.ts) built and verified.
+Last session: 2026-02-23
+Stopped at: Completed 03-01-PLAN.md — manifest cache service and Phase 3 foundation updates.
 Resume file: None
