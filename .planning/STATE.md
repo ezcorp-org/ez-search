@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-22)
 ## Current Position
 
 Phase: 5 of 6 (Multi-Model Routing)
-Plan: 1 of 3 in current phase
-Status: In progress — plan 1 complete, plans 2-3 pending
-Last activity: 2026-02-23 -- Completed 05-01-PLAN.md (text chunker service)
+Plan: 2 of 3 in current phase
+Status: In progress — plans 1-2 complete, plan 3 pending
+Last activity: 2026-02-23 -- Completed 05-02-PLAN.md (CLIP image embedding service)
 
-Progress: [█████████░] 75%
+Progress: [█████████░] 78%
 
 ## Performance Metrics
 
@@ -31,7 +31,7 @@ Progress: [█████████░] 75%
 | 02-foundation-and-infrastructure | 3/3 | 29 min | ~10 min |
 | 03-code-indexing-pipeline | 3/3 | ~16 min | ~5 min |
 | 04-search-and-query | 1/1 | ~7 min | 7 min |
-| 05-multi-model-routing | 1/3 | ~5 min | 5 min |
+| 05-multi-model-routing | 2/3 | ~6 min | 3 min |
 
 **Recent Trend:**
 - Last 5 plans: 25 min, <1 min, 8 min, 7 min, 5 min
@@ -82,6 +82,10 @@ Recent decisions affecting current work:
 - **Text chunking: MAX_CHUNK_CHARS=1600** -- ~400 Nomic tokens per chunk; MIN_CHUNK_CHARS=200 prevents tiny fragments.
 - **pdf-parse dynamic import** -- extractPdfText() uses dynamic import('pdf-parse') to defer loading until PDF extraction is called.
 - **Paragraph-boundary chunking order** -- Expand oversized paragraphs via sentence split first, then merge small pieces up to MAX_CHUNK_CHARS.
+- **CLIP dtype: 'fp32' required** -- Quantized CLIP (int8/uint8) fails with "ConvInteger(10) is not implemented" in onnxruntime-node. fp32 is non-negotiable.
+- **CLIPVisionModelWithProjection, not full CLIP** -- Vision-only encoder sufficient; no text encoder needed for image embeddings.
+- **RawImage.fromURL needs file:// prefix** -- Prepend `file://` to absolute paths for reliable local file access across platforms.
+- **dispose() cast via unknown** -- Transformers.js PreTrainedModel.dispose() returns `Promise<unknown[]>`; cast `as unknown as { dispose?: () => Promise<unknown> }` to satisfy strict TypeScript.
 
 ### Pending Todos
 
@@ -94,6 +98,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-23
-Stopped at: Completed 05-01-PLAN.md — text chunker service with chunkTextFile() and extractPdfText().
+Last session: 2026-02-23T13:36:11Z
+Stopped at: Completed 05-02-PLAN.md — CLIP image embedding service with createImageEmbeddingPipeline().
 Resume file: None
