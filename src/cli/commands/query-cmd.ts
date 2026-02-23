@@ -101,11 +101,15 @@ export async function runQuery(
       // image queries from text not supported — skip even if images are indexed
     }
 
-    // Early exit when manifest exists but has no queryable types (e.g., after --clear without re-indexing)
+    // Early exit when manifest exists but has no queryable types
     if (typesToQuery.length === 0) {
       const { emitError } = await import('../errors.js');
+      // Distinguish "only images indexed" from "nothing indexed at all"
+      const hasOnlyImages = totalIndexed > 0;
       emitError(
-        { code: 'NO_INDEX', message: 'No indexed content found', suggestion: 'Run `ez-search index .` first' },
+        hasOnlyImages
+          ? { code: 'IMAGES_ONLY', message: `Only image files are indexed (${totalIndexed} files). Text-to-image search is not yet supported`, suggestion: 'Index a directory that contains code or text files, or wait for image search support' }
+          : { code: 'NO_INDEX', message: 'No indexed content found', suggestion: 'Run `ez-search index .` first' },
         options.format === 'text' ? 'text' : 'json'
       );
     }
