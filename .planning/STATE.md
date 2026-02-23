@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** Developers can semantically search their codebase locally with zero cloud dependencies -- fast enough to be useful as a retrieval engine for AI assistants.
-**Current focus:** Phase 7: Gap Closure (COMPLETE)
+**Current focus:** Phase 8: Project-Scoped Storage (In Progress)
 
 ## Current Position
 
-Phase: 7 of 7 (Gap Closure)
+Phase: 8 of 8 (Project-Scoped Storage)
 Plan: 1 of 1 in current phase
-Status: Phase complete — all plans executed, v1 milestone audit closed
-Last activity: 2026-02-23 -- Phase 7 complete: dead code removed, query hardened
+Status: In progress — plan 01 complete
+Last activity: 2026-02-23 -- Completed 08-01-PLAN.md: project-scoped storage migration
 
-Progress: [██████████] 100% (13/13 plans complete)
+Progress: [██████████] 100% (14/14 plans complete)
 
 ## Performance Metrics
 
@@ -86,6 +86,10 @@ Recent decisions affecting current work:
 - **ScannedFile imported from types.ts** -- No local shadows; index-cmd.ts imports ScannedFile from types.ts. The extra `.type` field is simply unused.
 - **NO_INDEX early exit skips explicit --type** -- Query command emits NO_INDEX when manifest is empty and no --type flag; explicit --type bypasses early exit (hits UNSUPPORTED_TYPE instead).
 - **existsSync before loadManifest** -- loadManifest() silently returns empty manifest for missing files; always check existence first in status command.
+- **Project-scoped storage path** -- resolveProjectStoragePath returns `<projectDir>/.ez-search` (no hash, no homedir). Consistent with .git/, .next/. Delete project = delete index.
+- **MANIFEST_FILENAME = manifest.json** -- Lives inside .ez-search/ alongside vectors. No longer a hidden dot-file in project root.
+- **manifestPath() helper** -- All manifest I/O routes through this private helper in manifest-cache.ts. DRY: load/save/clear all use it.
+- **--clear uses rmSync only** -- rmSync(.ez-search/, recursive) already removes manifest.json (it's inside .ez-search/). clearManifest() call was redundant and removed.
 - **byType always present** -- Status byType object always has code/text/image keys (even zeros) for predictable agent parsing.
 - **Text chunking: MAX_CHUNK_CHARS=1600** -- ~400 Nomic tokens per chunk; MIN_CHUNK_CHARS=200 prevents tiny fragments.
 - **pdf-parse dynamic import** -- extractPdfText() uses dynamic import('pdf-parse') to defer loading until PDF extraction is called.
@@ -106,6 +110,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-23
-Stopped at: Phase 7 complete — gap closure finished. All v1 milestone audit items closed.
+Last session: 2026-02-23T11:52:14Z
+Stopped at: Completed 08-01-PLAN.md (project-scoped storage)
 Resume file: None
