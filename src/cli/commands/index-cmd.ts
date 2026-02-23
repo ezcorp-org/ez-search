@@ -550,11 +550,11 @@ export async function runIndex(
       }
     }
   } catch (err) {
+    const { emitError } = await import('../errors.js');
     const message = err instanceof Error ? err.message : String(err);
-    if (options.format === 'text') {
-      console.error(`Error: ${message}`);
-    } else {
-      console.log(JSON.stringify({ status: 'error', message }));
-    }
+    emitError(
+      { code: 'GENERAL_ERROR', message, suggestion: 'Check the error above and retry' },
+      options.format === 'text' ? 'text' : 'json'
+    );
   }
 }

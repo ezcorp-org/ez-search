@@ -61,13 +61,15 @@ export async function runQuery(
 
     // Handle unsupported image query
     if (options.type === 'image') {
-      const msg = 'Image search requires image query input (not yet supported)';
-      if (options.format === 'text') {
-        process.stderr.write(msg + '\n');
-      } else {
-        console.log(JSON.stringify({ query: text, error: msg }));
-      }
-      return;
+      const { emitError } = await import('../errors.js');
+      emitError(
+        {
+          code: 'UNSUPPORTED_TYPE',
+          message: 'Image search requires image query input (not yet supported)',
+          suggestion: 'Omit --type image to search code and text',
+        },
+        options.format === 'text' ? 'text' : 'json'
+      );
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -283,11 +285,11 @@ export async function runQuery(
       console.log(JSON.stringify(output, null, 2));
     }
   } catch (err) {
+    const { emitError } = await import('../errors.js');
     const message = err instanceof Error ? err.message : String(err);
-    if (options.format === 'text') {
-      console.error(`Error: ${message}`);
-    } else {
-      console.log(JSON.stringify({ query: text, error: message }));
-    }
+    emitError(
+      { code: 'GENERAL_ERROR', message, suggestion: 'Check the error above and retry' },
+      options.format === 'text' ? 'text' : 'json'
+    );
   }
 }
