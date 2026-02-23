@@ -84,11 +84,11 @@ Recent decisions affecting current work:
 - **emitError() returns never** -- Shared CLI error utility; JSON to stdout, text to stderr; return type `never` so TypeScript infers unreachable code after call.
 - **JSON errors to stdout** -- Same channel as normal JSON output so agent pipelines don't need to merge stdout+stderr.
 - **ScannedFile imported from types.ts** -- No local shadows; index-cmd.ts imports ScannedFile from types.ts. The extra `.type` field is simply unused.
-- **NO_INDEX early exit skips explicit --type** -- Query command emits NO_INDEX when manifest is empty and no --type flag; explicit --type bypasses early exit (hits UNSUPPORTED_TYPE instead).
+- **NO_INDEX guard covers all paths** -- Query command emits NO_INDEX when totalIndexed===0 regardless of --type flag. Second guard catches non-empty manifest with no queryable types. (Updated quick-001)
 - **existsSync before loadManifest** -- loadManifest() silently returns empty manifest for missing files; always check existence first in status command.
 - **Project-scoped storage path** -- resolveProjectStoragePath returns `<projectDir>/.ez-search` (no hash, no homedir). Consistent with .git/, .next/. Delete project = delete index.
 - **MANIFEST_FILENAME = manifest.json** -- Lives inside .ez-search/ alongside vectors. No longer a hidden dot-file in project root.
-- **manifestPath() helper** -- All manifest I/O routes through this private helper in manifest-cache.ts. DRY: load/save/clear all use it.
+- **manifestPath() helper** -- All manifest I/O routes through this private helper in manifest-cache.ts. DRY: load/save all use it.
 - **--clear uses rmSync only** -- rmSync(.ez-search/, recursive) already removes manifest.json (it's inside .ez-search/). clearManifest() call was redundant and removed.
 - **byType always present** -- Status byType object always has code/text/image keys (even zeros) for predictable agent parsing.
 - **Text chunking: MAX_CHUNK_CHARS=1600** -- ~400 Nomic tokens per chunk; MIN_CHUNK_CHARS=200 prevents tiny fragments.
@@ -111,5 +111,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-23
-Stopped at: Phase 8 complete — all milestone phases finished. Ready for milestone audit.
+Stopped at: Completed quick-001 (tech debt cleanup). All milestone phases finished.
 Resume file: None
