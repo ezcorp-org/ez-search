@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Validation Spike** - Confirm Zvec and WebGPU work on target system before building on them
 - [x] **Phase 2: Foundation and Infrastructure** - Project structure, CLI scaffold, ignore parsing, model loader, vector DB wrapper
-- [ ] **Phase 3: Code Indexing Pipeline** - End-to-end indexing with Jina code model, chunking, batching, incremental caching
+- [x] **Phase 3: Code Indexing Pipeline** - End-to-end indexing with Jina code model, chunking, batching, incremental caching
 - [ ] **Phase 4: Search and Query** - Natural language query with ranked, machine-readable results
 - [ ] **Phase 5: Multi-Model Routing** - Extend to text (Nomic) and image (CLIP) models with auto-detection
 - [ ] **Phase 6: Status and Polish** - Status command, error handling, edge cases
@@ -64,9 +64,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- Manifest cache, incremental change detection, and foundation updates (types, scanner, vector-db schema v2)
-- [ ] 03-02-PLAN.md -- Token-accurate code chunking with line number tracking
-- [ ] 03-03-PLAN.md -- Index command wiring: scanner to chunker to embedder to store
+- [x] 03-01-PLAN.md -- Manifest cache, incremental change detection, and foundation updates (types, scanner, vector-db schema v2)
+- [x] 03-02-PLAN.md -- Token-accurate code chunking with line number tracking
+- [x] 03-03-PLAN.md -- Index command wiring: scanner to chunker to embedder to store
 
 ### Phase 4: Search and Query
 **Goal**: User can search their indexed codebase with natural language and get useful, machine-parseable results
@@ -120,7 +120,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Validation Spike | 2/2 | Complete | 2026-02-23 |
 | 2. Foundation and Infrastructure | 3/3 | Complete | 2026-02-22 |
-| 3. Code Indexing Pipeline | 0/3 | Not started | - |
+| 3. Code Indexing Pipeline | 3/3 | Complete | 2026-02-22 |
 | 4. Search and Query | 0/2 | Not started | - |
 | 5. Multi-Model Routing | 0/3 | Not started | - |
 | 6. Status and Polish | 0/1 | Not started | - |

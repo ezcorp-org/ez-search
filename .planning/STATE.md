@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** Developers can semantically search their codebase locally with zero cloud dependencies -- fast enough to be useful as a retrieval engine for AI assistants.
-**Current focus:** Phase 3: Code Indexing Pipeline (In progress)
+**Current focus:** Phase 3: Code Indexing Pipeline (COMPLETE)
 
 ## Current Position
 
 Phase: 3 of 6 (Code Indexing Pipeline)
-Plan: 1 of N in current phase (03-01 complete)
-Status: In progress — 03-01 complete (manifest cache + foundation updates)
-Last activity: 2026-02-23 -- Completed 03-01-PLAN.md (manifest cache service)
+Plan: 3 of 3 in current phase
+Status: Phase complete — all 3 plans executed, pending verification
+Last activity: 2026-02-22 -- Phase 3 execution complete
 
-Progress: [█████░░░░░] 40%
+Progress: [██████░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 16 min
-- Total execution time: 1.1 hours
+- Total plans completed: 7
+- Average duration: 14 min
+- Total execution time: ~1.2 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [█████░░░░░] 40%
 |-------|-------|-------|----------|
 | 01-validation-spike | 2/2 | 62 min | 31 min |
 | 02-foundation-and-infrastructure | 3/3 | 29 min | ~10 min |
-| 03-code-indexing-pipeline | 2/N | ~1 min | <1 min |
+| 03-code-indexing-pipeline | 3/3 | ~16 min | ~5 min |
 
 **Recent Trend:**
-- Last 5 plans: 40 min, 2 min, 2 min, 25 min, <1 min
-- Trend: fast (service implementation tasks)
+- Last 5 plans: 2 min, 2 min, 25 min, <1 min, 8 min
+- Trend: fast (service/pipeline wiring tasks)
 
 *Updated after each plan completion*
 
@@ -69,6 +69,10 @@ Recent decisions affecting current work:
 - **Manifest version mismatch → empty manifest** -- No migration; simpler to re-index than handle partial compatibility.
 - **makeChunkId format** -- `<12-char sha256-path-hash>_<4-digit-index>`, no colons (Zvec constraint).
 - **Vector DB schema v2** -- chunkText STRING field added; ensureSchemaVersion() auto-wipes col-768/col-512 on mismatch.
+- **typeFilter defaults to 'code'** -- When --type is not specified, index command defaults to code pipeline only. Text/image return structured JSON errors (Phase 5).
+- **Optimize-then-save ordering** -- col768.optimize() always called before saveManifest(). Manifest is the integrity marker; only written after optimize succeeds.
+- **--clear wipes entire storagePath** -- rmSync(storagePath, recursive) removes col-768, col-512, and schema-version.json atomically; openProjectCollections() recreates everything fresh.
+- **Chunk-level diff by index position** -- existingChunks[chunk.chunkIndex] compared by textHash; unchanged chunks skip re-embedding and count as reused.
 
 ### Pending Todos
 
@@ -81,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-23
-Stopped at: Completed 03-01-PLAN.md — manifest cache service and Phase 3 foundation updates.
+Last session: 2026-02-22
+Stopped at: Completed 03-03-PLAN.md — full index command pipeline wired end-to-end.
 Resume file: None

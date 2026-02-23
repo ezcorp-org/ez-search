@@ -12,13 +12,13 @@
 
 ### Indexing
 
-- [ ] **IDX-01**: User can index a directory of code files (.ts, .js, .py, .go, .rs, .c, .cpp) into vector embeddings using Jina code model
+- [x] **IDX-01**: User can index a directory of code files (.ts, .js, .py, .go, .rs, .c, .cpp) into vector embeddings using Jina code model
 - [ ] **IDX-02**: User can index text/document files (.md, .txt, .pdf, .csv) using Nomic text model
 - [ ] **IDX-03**: User can index image files (.jpg, .png, .webp) using CLIP model
-- [ ] **IDX-04**: Incremental indexing skips unchanged files using mtime/size check + xxhash content verification
+- [x] **IDX-04**: Incremental indexing skips unchanged files using mtime/size check + xxhash content verification
 - [ ] **IDX-05**: All index state stored in `~/.ez-search/<project>-<hash>/` directory in user home
-- [ ] **IDX-06**: User can force a specific pipeline with `--type <code|text|image>` flag
-- [ ] **IDX-07**: User can clear existing index with `--clear` flag
+- [x] **IDX-06**: User can force a specific pipeline with `--type <code|text|image>` flag
+- [x] **IDX-07**: User can clear existing index with `--clear` flag
 - [ ] **IDX-08**: Separate vector collections per model type (768-dim for code/text, 512-dim for images)
 
 ### Search
@@ -33,10 +33,10 @@
 
 - [ ] **INFRA-01**: WebGPU inference with graceful fallback to WASM/CPU when GPU unavailable
 - [ ] **INFRA-02**: Lazy model loading -- models loaded only after command is parsed (cold start <1.5s)
-- [ ] **INFRA-03**: Batch WebGPU inference in batches of 32 to avoid VRAM OOM
+- [x] **INFRA-03**: Batch WebGPU inference in batches of 32 to avoid VRAM OOM
 - [ ] **INFRA-04**: Respect .gitignore and .cursorignore for file exclusion during indexing
 - [ ] **INFRA-05**: User can disable ignore file exclusion with a flag (e.g., `--no-ignore`)
-- [ ] **INFRA-06**: Text/code chunking with ~500 token chunks and 50 token overlap, tracking start/end line numbers
+- [x] **INFRA-06**: Text/code chunking with ~500 token chunks and 50 token overlap, tracking start/end line numbers
 
 ### Status
 
@@ -76,13 +76,13 @@
 |-------------|-------|--------|
 | VALID-01 | Phase 1 | Complete |
 | VALID-02 | Phase 1 | Complete |
-| IDX-01 | Phase 3 | Pending |
+| IDX-01 | Phase 3 | Complete |
 | IDX-02 | Phase 5 | Pending |
 | IDX-03 | Phase 5 | Pending |
-| IDX-04 | Phase 3 | Pending |
+| IDX-04 | Phase 3 | Complete |
 | IDX-05 | Phase 2 | Complete |
-| IDX-06 | Phase 3 | Pending |
-| IDX-07 | Phase 3 | Pending |
+| IDX-06 | Phase 3 | Complete |
+| IDX-07 | Phase 3 | Complete |
 | IDX-08 | Phase 2 | Complete |
 | SRCH-01 | Phase 4 | Pending |
 | SRCH-02 | Phase 5 | Pending |
@@ -91,10 +91,10 @@
 | SRCH-05 | Phase 4 | Pending |
 | INFRA-01 | Phase 2 | Complete |
 | INFRA-02 | Phase 2 | Complete |
-| INFRA-03 | Phase 3 | Pending |
+| INFRA-03 | Phase 3 | Complete |
 | INFRA-04 | Phase 2 | Complete |
 | INFRA-05 | Phase 2 | Complete |
-| INFRA-06 | Phase 3 | Pending |
+| INFRA-06 | Phase 3 | Complete |
 | STAT-01 | Phase 6 | Pending |
 
 **Coverage:**
