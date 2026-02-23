@@ -10,17 +10,17 @@ See: .planning/PROJECT.md (updated 2026-02-22)
 ## Current Position
 
 Phase: 2 of 6 (Foundation and Infrastructure)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-23 -- Completed 02-01-PLAN.md (CLI scaffold, shared types, path utilities)
+Last activity: 2026-02-23 -- Completed 02-02-PLAN.md (file scanner service with ignore filtering)
 
-Progress: [███░░░░░░░] 25%
+Progress: [████░░░░░░] 33%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 21 min
+- Total plans completed: 4
+- Average duration: 16 min
 - Total execution time: 1.1 hours
 
 **By Phase:**
@@ -28,11 +28,11 @@ Progress: [███░░░░░░░] 25%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-validation-spike | 2/2 | 62 min | 31 min |
-| 02-foundation-and-infrastructure | 1/3 | 2 min | 2 min |
+| 02-foundation-and-infrastructure | 2/3 | 4 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 22 min, 40 min, 2 min
-- Trend: -18 min (scaffold tasks are fast)
+- Last 5 plans: 40 min, 2 min, 2 min
+- Trend: fast (scaffold and service tasks)
 
 *Updated after each plan completion*
 
@@ -57,6 +57,9 @@ Recent decisions affecting current work:
 - **crypto.createHash not crypto.hash** -- Use `crypto.createHash('sha256')` (Node 20+) not `crypto.hash()` (Node 21.7+ only) for compatibility with engines>=20.
 - **tsconfig rootDir = src** -- Changed from `.` to `src` to prevent spike/ files from appearing in dist/ output.
 - **Commander --no-ignore convention** -- `--no-ignore` flag yields `options.ignore = false` (boolean); true = use ignore files, false = disabled. Wiring to scanFiles deferred to Phase 3.
+- **Scanner gitignore dir semantics** -- Check both `relPath+'/'` and `relPath` for directories; both patterns (`dist` and `dist/`) must be respected.
+- **Scanner always excludes built-ins** -- Built-in exclusions active even when `useIgnoreFiles: false`; only `.gitignore`/`.cursorignore` are disabled.
+- **Scanner skips symlinks** -- No explicit cycle detection needed; symlinks are skipped entirely.
 
 ### Pending Todos
 
@@ -70,5 +73,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-23
-Stopped at: Completed 02-01-PLAN.md -- CLI scaffold with lazy-loaded commands, shared types, and path resolution.
+Stopped at: Completed 02-02-PLAN.md -- File scanner service with multi-layered ignore filtering and type classification.
 Resume file: None
