@@ -38,11 +38,26 @@ export async function runQuery(
     const manifest = loadManifest(projectDir);
     const totalIndexed = Object.keys(manifest.files).length;
 
-    // 4. Determine which types to search
+    // 4. Determine which types to search (auto-detect from manifest)
     type QueryType = 'code' | 'text' | 'image';
-    const typesToQuery: QueryType[] = options.type
-      ? [options.type as QueryType]
-      : ['code', 'text'];
+    let typesToQuery: QueryType[];
+
+    if (options.type) {
+      typesToQuery = [options.type as QueryType];
+    } else {
+      // Auto-detect: inspect manifest file extensions to find which types were indexed
+      const { EXTENSION_MAP } = await import('../../types.js');
+      const indexedTypes = new Set<string>();
+      for (const filePath of Object.keys(manifest.files)) {
+        const ext = '.' + filePath.split('.').pop()?.toLowerCase();
+        const fileType = EXTENSION_MAP[ext];
+        if (fileType) indexedTypes.add(fileType);
+      }
+      typesToQuery = [];
+      if (indexedTypes.has('code')) typesToQuery.push('code');
+      if (indexedTypes.has('text')) typesToQuery.push('text');
+      // image queries from text not supported — skip even if images are indexed
+    }
 
     // Handle unsupported image query
     if (options.type === 'image') {
