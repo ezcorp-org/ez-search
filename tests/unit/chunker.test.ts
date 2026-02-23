@@ -14,6 +14,13 @@ mock.module("sharp", () => {
 mock.module("@huggingface/transformers", () => ({
   AutoTokenizer: { from_pretrained: async () => ({}) },
   env: { cacheDir: "", allowRemoteModels: false },
+  // Additional exports needed by image-embedder.ts and model-router.ts when
+  // bun resolves modules across the full test suite:
+  pipeline: async () => { const fn = async () => ({ data: new Float32Array(768) }); fn.dispose = async () => {}; return fn; },
+  CLIPTextModelWithProjection: { from_pretrained: async () => (() => ({ text_embeds: { data: new Float32Array(512) } })) },
+  CLIPVisionModelWithProjection: { from_pretrained: async () => ({}) },
+  AutoProcessor: { from_pretrained: async () => ({}) },
+  RawImage: { fromBlob: async () => ({}) },
 }));
 // Note: config/paths.js is NOT mocked — it loads fine without native deps.
 // Only @huggingface/transformers (and its native transitive deps) need mocking.
