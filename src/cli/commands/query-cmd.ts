@@ -18,6 +18,8 @@
  * Over-fetch topK*5 ensures enough candidates after modelId filtering.
  */
 
+import type { CollapsedResult } from '../../services/query-utils.js';
+
 export async function runQuery(
   text: string,
   options: { format?: string; topK: string; dir?: string; threshold?: string; type?: string }
@@ -37,6 +39,15 @@ export async function runQuery(
     const { loadManifest } = await import('../../services/manifest-cache.js');
     const manifest = loadManifest(projectDir);
     const totalIndexed = Object.keys(manifest.files).length;
+
+    // Guard: no indexed content at all
+    if (totalIndexed === 0) {
+      const { emitError } = await import('../errors.js');
+      emitError(
+        { code: 'NO_INDEX', message: 'No indexed content found', suggestion: 'Run `ez-search index .` first' },
+        options.format === 'text' ? 'text' : 'json'
+      );
+    }
 
     // 4. Determine which types to search (auto-detect from manifest)
     type QueryType = 'code' | 'text' | 'image';
@@ -61,7 +72,7 @@ export async function runQuery(
     }
 
     // Early exit when manifest exists but has no queryable types (e.g., after --clear without re-indexing)
-    if (typesToQuery.length === 0 && !options.type) {
+    if (typesToQuery.length === 0) {
       const { emitError } = await import('../errors.js');
       emitError(
         { code: 'NO_INDEX', message: 'No indexed content found', suggestion: 'Run `ez-search index .` first' },
@@ -84,97 +95,11 @@ export async function runQuery(
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
+    const { normalizeResults, filterAndCollapse } = await import('../../services/query-utils.js');
+
     const hasPostFilters = options.dir !== undefined || threshold !== undefined;
     // Over-fetch for mixed col-768 + optional post-filters
     const fetchCount = topK * 5 * (hasPostFilters ? 3 : 1);
-
-    type NormalizedResult = {
-      filePath: string;
-      chunkIndex: number;
-      lineStart: number;
-      lineEnd: number;
-      chunkText: string;
-      modelId: string;
-      score: number;
-    };
-
-    function normalizeResults(rawResults: Awaited<ReturnType<typeof col768.query>>): NormalizedResult[] {
-      return rawResults.map((r) => ({
-        filePath: String(r.metadata['filePath'] ?? ''),
-        chunkIndex: Number(r.metadata['chunkIndex'] ?? 0),
-        lineStart: Number(r.metadata['lineStart'] ?? 0),
-        lineEnd: Number(r.metadata['lineEnd'] ?? 0),
-        chunkText: String(r.metadata['chunkText'] ?? ''),
-        modelId: String(r.metadata['modelId'] ?? ''),
-        score: Math.round(Math.max(0, Math.min(1, 1 - r.distance)) * 10000) / 10000,
-      }));
-    }
-
-    function filterAndCollapse(results: NormalizedResult[], modelFilter: (id: string) => boolean): CollapsedResult[] {
-      // Filter by modelId
-      let filtered = results.filter((r) => modelFilter(r.modelId));
-
-      // Apply --threshold
-      if (threshold !== undefined) {
-        filtered = filtered.filter((r) => r.score >= threshold);
-      }
-
-      // Apply --dir
-      if (options.dir !== undefined) {
-        const normalizedDir = options.dir.replace(/^\.\//, '').replace(/\/$/, '');
-        filtered = filtered.filter((r) => r.filePath.startsWith(normalizedDir));
-      }
-
-      // Collapse adjacent chunks
-      const byFile = new Map<string, NormalizedResult[]>();
-      for (const r of filtered) {
-        const group = byFile.get(r.filePath);
-        if (group) {
-          group.push(r);
-        } else {
-          byFile.set(r.filePath, [r]);
-        }
-      }
-
-      const collapsed: CollapsedResult[] = [];
-
-      for (const [, chunks] of byFile) {
-        chunks.sort((a, b) => a.chunkIndex - b.chunkIndex);
-
-        let runStart = 0;
-        while (runStart < chunks.length) {
-          let runEnd = runStart;
-          while (
-            runEnd + 1 < chunks.length &&
-            chunks[runEnd + 1].chunkIndex === chunks[runEnd].chunkIndex + 1
-          ) {
-            runEnd++;
-          }
-
-          const run = chunks.slice(runStart, runEnd + 1);
-          collapsed.push({
-            filePath: run[0].filePath,
-            lineStart: Math.min(...run.map((r) => r.lineStart)),
-            lineEnd: Math.max(...run.map((r) => r.lineEnd)),
-            score: Math.max(...run.map((r) => r.score)),
-            chunkText: run.map((r) => r.chunkText).join('\n'),
-          });
-
-          runStart = runEnd + 1;
-        }
-      }
-
-      collapsed.sort((a, b) => b.score - a.score);
-      return collapsed.slice(0, topK);
-    }
-
-    type CollapsedResult = {
-      filePath: string;
-      lineStart: number;
-      lineEnd: number;
-      score: number;
-      chunkText: string;
-    };
 
     // ── Execute per-type queries sequentially (memory conservation) ──────────
 
@@ -198,7 +123,7 @@ export async function runQuery(
         }
 
         const normalized = normalizeResults(rawResults);
-        codeResults = filterAndCollapse(normalized, (id) => id.includes('jina') || id.startsWith('jinaai/'));
+        codeResults = filterAndCollapse(normalized, (id) => id.includes('jina') || id.startsWith('jinaai/'), { threshold, dir: options.dir, topK });
       } catch (err) {
         process.stderr.write(`[query] code pipeline error: ${err instanceof Error ? err.message : String(err)}\n`);
       } finally {
@@ -222,7 +147,7 @@ export async function runQuery(
         }
 
         const normalized = normalizeResults(rawResults);
-        textResults = filterAndCollapse(normalized, (id) => id.includes('nomic'));
+        textResults = filterAndCollapse(normalized, (id) => id.includes('nomic'), { threshold, dir: options.dir, topK });
       } catch (err) {
         process.stderr.write(`[query] text pipeline error: ${err instanceof Error ? err.message : String(err)}\n`);
       } finally {
