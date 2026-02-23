@@ -12,7 +12,7 @@ ez-search delivers local semantic search over code, text, and images through a b
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Validation Spike** - Confirm Zvec and WebGPU work on target system before building on them
+- [x] **Phase 1: Validation Spike** - Confirm Zvec and WebGPU work on target system before building on them
 - [ ] **Phase 2: Foundation and Infrastructure** - Project structure, CLI scaffold, ignore parsing, model loader, vector DB wrapper
 - [ ] **Phase 3: Code Indexing Pipeline** - End-to-end indexing with Jina code model, chunking, batching, incremental caching
 - [ ] **Phase 4: Search and Query** - Natural language query with ranked, machine-readable results
@@ -32,8 +32,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md -- Zvec CRUD validation at realistic scale (1000+ vectors, 768 dims)
-- [ ] 01-02-PLAN.md -- Transformers.js WebGPU/CPU inference with embedding quality validation
+- [x] 01-01-PLAN.md -- Zvec CRUD validation at realistic scale (1000+ vectors, 768 dims)
+- [x] 01-02-PLAN.md -- Transformers.js WebGPU/CPU inference with embedding quality validation
 
 ### Phase 2: Foundation and Infrastructure
 **Goal**: All infrastructure modules exist and are independently testable -- the project skeleton is ready for pipeline integration
@@ -118,7 +118,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Validation Spike | 0/2 | Not started | - |
+| 1. Validation Spike | 2/2 | Complete | 2026-02-23 |
 | 2. Foundation and Infrastructure | 0/3 | Not started | - |
 | 3. Code Indexing Pipeline | 0/3 | Not started | - |
 | 4. Search and Query | 0/2 | Not started | - |

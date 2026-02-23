@@ -7,8 +7,8 @@
 
 ### Validation
 
-- [ ] **VALID-01**: Zvec Node.js SDK installs and runs basic CRUD operations on target system
-- [ ] **VALID-02**: WebGPU inference works via Transformers.js v4 on target system, with fallback to WASM/CPU confirmed
+- [x] **VALID-01**: Zvec Node.js SDK installs and runs basic CRUD operations on target system
+- [x] **VALID-02**: WebGPU inference works via Transformers.js v4 on target system, with fallback to WASM/CPU confirmed
 
 ### Indexing
 
@@ -74,8 +74,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VALID-01 | Phase 1 | Pending |
-| VALID-02 | Phase 1 | Pending |
+| VALID-01 | Phase 1 | Complete |
+| VALID-02 | Phase 1 | Complete |
 | IDX-01 | Phase 3 | Pending |
 | IDX-02 | Phase 5 | Pending |
 | IDX-03 | Phase 5 | Pending |
