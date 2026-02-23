@@ -5,6 +5,8 @@
  * Two collections per project:
  *   col-768 — for code/text embeddings (jina, nomic, 768-dim)
  *   col-512 — for image embeddings (CLIP, 512-dim)
+ *
+ * Storage lives at <project>/.ez-search/ (project-scoped).
  */
 
 import { createRequire } from 'module';
@@ -208,8 +210,8 @@ export interface ProjectCollections {
  * Open both vector collections for a project.
  *
  * Storage layout:
- *   ~/.ez-search/<project>-<hash>/col-768/  (768-dim, code/text)
- *   ~/.ez-search/<project>-<hash>/col-512/  (512-dim, images)
+ *   <projectDir>/.ez-search/col-768/  (768-dim, code/text)
+ *   <projectDir>/.ez-search/col-512/  (512-dim, images)
  *
  * Creates the storage directory if it does not exist.
  */

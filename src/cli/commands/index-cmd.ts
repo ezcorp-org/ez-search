@@ -312,9 +312,8 @@ export async function runIndex(
     let { col768, col512, storagePath } = openProjectCollections(absPath);
 
     // 3. Handle --clear
+    // rmSync removes .ez-search/ entirely (including manifest.json inside it)
     if (options.clear) {
-      const { clearManifest } = await import('../../services/manifest-cache.js');
-      clearManifest(absPath);
       rmSync(storagePath, { recursive: true, force: true });
       const reopened = openProjectCollections(absPath);
       col768 = reopened.col768;

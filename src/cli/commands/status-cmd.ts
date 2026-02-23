@@ -102,8 +102,9 @@ export async function runStatus(options: { format?: string; ignore?: boolean } =
   const projectDir = process.cwd();
 
   // 1. Check manifest exists
+  const { resolveProjectStoragePath } = await import('../../config/paths.js');
   const { MANIFEST_FILENAME, loadManifest } = await import('../../services/manifest-cache.js');
-  const manifestPath = path.join(projectDir, MANIFEST_FILENAME);
+  const manifestPath = path.join(resolveProjectStoragePath(projectDir), MANIFEST_FILENAME);
 
   if (!existsSync(manifestPath)) {
     emitError(
@@ -164,7 +165,6 @@ export async function runStatus(options: { format?: string; ignore?: boolean } =
   );
 
   // 5. Resolve storage path and check it exists
-  const { resolveProjectStoragePath } = await import('../../config/paths.js');
   const storagePath = resolveProjectStoragePath(projectDir);
 
   if (!existsSync(storagePath) && !warning) {
