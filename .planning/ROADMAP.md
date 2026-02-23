@@ -61,12 +61,12 @@ Plans:
   3. Running `ez-search index . --type code` forces the code pipeline regardless of file types present
   4. Running `ez-search index . --clear` removes existing index data before re-indexing
   5. Batch inference processes chunks in groups of 32 without VRAM OOM on a standard GPU
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: Manifest cache and incremental change detection
-- [ ] 03-02: Text/code chunking with line number tracking
-- [ ] 03-03: Index command wiring -- scanner to chunker to embedder to store
+- [ ] 03-01-PLAN.md -- Manifest cache, incremental change detection, and foundation updates (types, scanner, vector-db schema v2)
+- [ ] 03-02-PLAN.md -- Token-accurate code chunking with line number tracking
+- [ ] 03-03-PLAN.md -- Index command wiring: scanner to chunker to embedder to store
 
 ### Phase 4: Search and Query
 **Goal**: User can search their indexed codebase with natural language and get useful, machine-parseable results
