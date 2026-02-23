@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Multi-Model Routing** - Extend to text (Nomic) and image (CLIP) models with auto-detection
 - [x] **Phase 6: Status and Polish** - Status command, error handling, edge cases
 - [x] **Phase 7: Gap Closure** - Query optimization, EMPTY_DIR wiring, code hygiene
-- [ ] **Phase 8: Project-Scoped Storage** - Move index data into project directory, keep shared models global
+- [x] **Phase 8: Project-Scoped Storage** - Move index data into project directory, keep shared models global
 
 ## Phase Details
 
@@ -137,7 +137,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 08-01-PLAN.md -- Refactor storage paths and manifest location to project-scoped layout
+- [x] 08-01-PLAN.md -- Refactor storage paths and manifest location to project-scoped layout
 
 ## Progress
 
@@ -153,4 +153,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 5. Multi-Model Routing | 3/3 | Complete | 2026-02-23 |
 | 6. Status and Polish | 1/1 | Complete | 2026-02-23 |
 | 7. Gap Closure | 1/1 | Complete | 2026-02-23 |
-| 8. Project-Scoped Storage | 0/1 | Pending | -- |
+| 8. Project-Scoped Storage | 1/1 | Complete | 2026-02-23 |

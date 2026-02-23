@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** Developers can semantically search their codebase locally with zero cloud dependencies -- fast enough to be useful as a retrieval engine for AI assistants.
-**Current focus:** Phase 8: Project-Scoped Storage (In Progress)
+**Current focus:** Phase 8: Project-Scoped Storage (COMPLETE)
 
 ## Current Position
 
 Phase: 8 of 8 (Project-Scoped Storage)
 Plan: 1 of 1 in current phase
-Status: In progress — plan 01 complete
-Last activity: 2026-02-23 -- Completed 08-01-PLAN.md: project-scoped storage migration
+Status: Phase complete — all plans executed, verified (8/8 must-haves)
+Last activity: 2026-02-23 -- Phase 8 complete: index data moved to project-scoped .ez-search/
 
 Progress: [██████████] 100% (14/14 plans complete)
 
@@ -110,6 +110,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-23T11:52:14Z
-Stopped at: Completed 08-01-PLAN.md (project-scoped storage)
+Last session: 2026-02-23
+Stopped at: Phase 8 complete — all milestone phases finished. Ready for milestone audit.
 Resume file: None
