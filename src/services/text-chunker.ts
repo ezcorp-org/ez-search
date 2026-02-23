@@ -85,8 +85,10 @@ function splitOversizedParagraph(paragraph: string): string[] {
  */
 export async function extractPdfText(buffer: Buffer): Promise<string> {
   try {
-    const pdf = (await import('pdf-parse')).default;
-    const result = await pdf(buffer);
+    const { PDFParse } = await import('pdf-parse');
+    const parser = new PDFParse({ data: new Uint8Array(buffer) });
+    const result = await parser.getText();
+    await parser.destroy();
     return result.text;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

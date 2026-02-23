@@ -86,9 +86,8 @@ export async function createImageEmbeddingPipeline(): Promise<ImageEmbeddingPipe
     },
 
     async dispose(): Promise<void> {
-      const model = visionModel as unknown as { dispose?: () => Promise<unknown> };
-      if (model && typeof model.dispose === 'function') {
-        await model.dispose();
+      if (typeof (visionModel as unknown as Record<string, unknown>).dispose === 'function') {
+        await (visionModel as unknown as { dispose: () => Promise<unknown> }).dispose();
       }
     },
   };
