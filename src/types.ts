@@ -5,6 +5,7 @@ export interface ScannedFile {
   relativePath: string;
   type: FileType;
   sizeBytes: number;
+  mtimeMs: number;
 }
 
 export interface ScanOptions {

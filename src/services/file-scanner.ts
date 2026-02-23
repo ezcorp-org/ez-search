@@ -80,6 +80,7 @@ async function* walkDir(
         relativePath: relPath,
         type: fileType,
         sizeBytes: stat.size,
+        mtimeMs: stat.mtimeMs,
       };
     }
   }

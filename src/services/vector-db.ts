@@ -8,7 +8,7 @@
  */
 
 import { createRequire } from 'module';
-import { mkdirSync } from 'fs';
+import { mkdirSync, readFileSync, existsSync, rmSync, writeFileSync } from 'fs';
 import * as path from 'path';
 import { resolveProjectStoragePath } from '../config/paths.js';
 
@@ -26,6 +26,10 @@ const {
 
 // Initialize Zvec at module level — suppress noisy logs
 ZVecInitialize({ logLevel: ZVecLogLevel.WARN });
+
+// ── Schema versioning ─────────────────────────────────────────────────────────
+
+const SCHEMA_VERSION = 2;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -89,8 +93,31 @@ function buildSchema(name: string, dim: number): InstanceType<typeof ZVecCollect
       { name: 'modelId', dataType: ZVecDataType.STRING },
       { name: 'lineStart', dataType: ZVecDataType.INT32 },
       { name: 'lineEnd', dataType: ZVecDataType.INT32 },
+      { name: 'chunkText', dataType: ZVecDataType.STRING },
     ],
   });
+}
+
+/**
+ * Check the schema version sidecar file. If the version has changed, wipe stale
+ * collections so they are recreated with the new schema on next open.
+ */
+function ensureSchemaVersion(storageDir: string): void {
+  const versionFile = path.join(storageDir, 'schema-version.json');
+  if (existsSync(versionFile)) {
+    try {
+      const { version } = JSON.parse(readFileSync(versionFile, 'utf8')) as { version: number };
+      if (version !== SCHEMA_VERSION) {
+        rmSync(path.join(storageDir, 'col-768'), { recursive: true, force: true });
+        rmSync(path.join(storageDir, 'col-512'), { recursive: true, force: true });
+      }
+    } catch {
+      // Corrupt version file — wipe and continue
+      rmSync(path.join(storageDir, 'col-768'), { recursive: true, force: true });
+      rmSync(path.join(storageDir, 'col-512'), { recursive: true, force: true });
+    }
+  }
+  writeFileSync(versionFile, JSON.stringify({ version: SCHEMA_VERSION }));
 }
 
 /**
@@ -114,6 +141,7 @@ function createCollection(storageDir: string, name: string, dim: number): Vector
           modelId: String(metadata['modelId'] ?? ''),
           lineStart: Number(metadata['lineStart'] ?? 0),
           lineEnd: Number(metadata['lineEnd'] ?? 0),
+          chunkText: String(metadata['chunkText'] ?? ''),
         },
       };
       const status = handle.insertSync(doc);
@@ -127,7 +155,7 @@ function createCollection(storageDir: string, name: string, dim: number): Vector
         fieldName: 'embedding',
         vector: Array.from(embedding),
         topk: topK,
-        outputFields: ['filePath', 'chunkIndex', 'modelId', 'lineStart', 'lineEnd'],
+        outputFields: ['filePath', 'chunkIndex', 'modelId', 'lineStart', 'lineEnd', 'chunkText'],
       });
 
       return results.map((r) => ({
@@ -139,6 +167,7 @@ function createCollection(storageDir: string, name: string, dim: number): Vector
           modelId: r.fields['modelId'] as string,
           lineStart: r.fields['lineStart'] as number,
           lineEnd: r.fields['lineEnd'] as number,
+          chunkText: r.fields['chunkText'] as string,
         },
       }));
     },
@@ -185,6 +214,7 @@ export interface ProjectCollections {
 export function openProjectCollections(projectDir: string): ProjectCollections {
   const storageDir = resolveProjectStoragePath(projectDir);
   mkdirSync(storageDir, { recursive: true });
+  ensureSchemaVersion(storageDir);
 
   const col768 = createCollection(storageDir, 'col-768', 768);
   const col512 = createCollection(storageDir, 'col-512', 512);
