@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** Developers can semantically search their codebase locally with zero cloud dependencies -- fast enough to be useful as a retrieval engine for AI assistants.
-**Current focus:** Phase 5: Multi-Model Routing (COMPLETE — verified)
+**Current focus:** Phase 6: Status and Polish (in progress)
 
 ## Current Position
 
-Phase: 5 of 6 (Multi-Model Routing)
-Plan: 3 of 3 in current phase
-Status: Phase complete — all plans executed, verified, gap closed
-Last activity: 2026-02-23 -- Phase 5 verified, gap fixed (manifest-based type auto-detection in query)
+Phase: 6 of 6 (Status and Polish)
+Plan: 1 of 1 in current phase (complete)
+Status: In progress — plan 01 executed
+Last activity: 2026-02-23 -- Completed 06-01-PLAN.md (status command + normalized errors)
 
-Progress: [████████░░] 83% (10/12 plans complete)
+Progress: [█████████░] 92% (11/12 plans complete)
 
 ## Performance Metrics
 
@@ -81,6 +81,10 @@ Recent decisions affecting current work:
 - **Query over-fetch** -- Fetch topK*3 from Zvec when --dir or --threshold filters are active to ensure enough candidates after post-filtering.
 - **Consecutive chunk merging** -- Chunks from the same file with chunkIndex differing by exactly 1 are merged; non-consecutive produce separate results.
 - **--format replaces --pretty** -- Both index and query commands use `--format text` for human-readable output; --pretty removed.
+- **emitError() returns never** -- Shared CLI error utility; JSON to stdout, text to stderr; return type `never` so TypeScript infers unreachable code after call.
+- **JSON errors to stdout** -- Same channel as normal JSON output so agent pipelines don't need to merge stdout+stderr.
+- **existsSync before loadManifest** -- loadManifest() silently returns empty manifest for missing files; always check existence first in status command.
+- **byType always present** -- Status byType object always has code/text/image keys (even zeros) for predictable agent parsing.
 - **Text chunking: MAX_CHUNK_CHARS=1600** -- ~400 Nomic tokens per chunk; MIN_CHUNK_CHARS=200 prevents tiny fragments.
 - **pdf-parse dynamic import** -- extractPdfText() uses dynamic import('pdf-parse') to defer loading until PDF extraction is called.
 - **Paragraph-boundary chunking order** -- Expand oversized paragraphs via sentence split first, then merge small pieces up to MAX_CHUNK_CHARS.
@@ -100,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-23
-Stopped at: Phase 5 complete — multi-model routing verified, gap closed (manifest type detection).
+Last session: 2026-02-23T15:33:53Z
+Stopped at: Completed 06-01-PLAN.md — status command + normalized error handling
 Resume file: None
