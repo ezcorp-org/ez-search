@@ -37,9 +37,11 @@ program
 program
   .command('status')
   .description('Show indexing status for the current directory')
-  .action(async () => {
+  .option('--format <mode>', 'output format: json (default) or text')
+  .option('--no-ignore', 'disable .gitignore and .cursorignore filtering')
+  .action(async (options: { format?: string; ignore: boolean }) => {
     const { runStatus } = await import('./commands/status-cmd.js');
-    await runStatus();
+    await runStatus(options);
   });
 
 program.parse();
