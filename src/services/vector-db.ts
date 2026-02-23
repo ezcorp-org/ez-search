@@ -16,6 +16,7 @@ const require = createRequire(import.meta.url);
 
 const {
   ZVecCreateAndOpen,
+  ZVecOpen,
   ZVecCollectionSchema,
   ZVecDataType,
   ZVecIndexType,
@@ -126,8 +127,9 @@ function ensureSchemaVersion(storageDir: string): void {
  */
 function createCollection(storageDir: string, name: string, dim: number): VectorCollection {
   const collectionPath = path.join(storageDir, name);
-  const schema = buildSchema(name, dim);
-  const handle = ZVecCreateAndOpen(collectionPath, schema);
+  const handle = existsSync(collectionPath)
+    ? ZVecOpen(collectionPath)
+    : ZVecCreateAndOpen(collectionPath, buildSchema(name, dim));
 
   return {
     insert(id: string, embedding: Float32Array, metadata: VectorMetadata): void {
