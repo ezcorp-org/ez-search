@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Validation Spike** - Confirm Zvec and WebGPU work on target system before building on them
 - [x] **Phase 2: Foundation and Infrastructure** - Project structure, CLI scaffold, ignore parsing, model loader, vector DB wrapper
 - [x] **Phase 3: Code Indexing Pipeline** - End-to-end indexing with Jina code model, chunking, batching, incremental caching
-- [ ] **Phase 4: Search and Query** - Natural language query with ranked, machine-readable results
+- [x] **Phase 4: Search and Query** - Natural language query with ranked, machine-readable results
 - [ ] **Phase 5: Multi-Model Routing** - Extend to text (Nomic) and image (CLIP) models with auto-detection
 - [ ] **Phase 6: Status and Polish** - Status command, error handling, edge cases
 
@@ -80,7 +80,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 04-01-PLAN.md -- Full query pipeline: embed query, vector search, score normalization, chunk collapsing, JSON/text output, all flags (--top-k, --dir, --threshold, --format)
+- [x] 04-01-PLAN.md -- Full query pipeline: embed query, vector search, score normalization, chunk collapsing, JSON/text output, all flags (--top-k, --dir, --threshold, --format)
 
 ### Phase 5: Multi-Model Routing
 **Goal**: User can index and search text documents and images alongside code, with automatic file type detection
@@ -120,6 +120,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. Validation Spike | 2/2 | Complete | 2026-02-23 |
 | 2. Foundation and Infrastructure | 3/3 | Complete | 2026-02-22 |
 | 3. Code Indexing Pipeline | 3/3 | Complete | 2026-02-22 |
-| 4. Search and Query | 0/1 | Not started | - |
+| 4. Search and Query | 1/1 | Complete | 2026-02-22 |
 | 5. Multi-Model Routing | 0/3 | Not started | - |
 | 6. Status and Polish | 0/1 | Not started | - |

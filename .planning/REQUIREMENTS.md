@@ -23,11 +23,11 @@
 
 ### Search
 
-- [ ] **SRCH-01**: User can query indexed embeddings with natural language and get ranked results
+- [x] **SRCH-01**: User can query indexed embeddings with natural language and get ranked results
 - [ ] **SRCH-02**: Auto-detect which model pipeline to use based on indexed content types
-- [ ] **SRCH-03**: Machine-readable output format: `File: <path> | Lines: <start>-<end> | Relevance: <score>`
-- [ ] **SRCH-04**: User can control number of results with `--top-k` flag (default 10)
-- [ ] **SRCH-05**: User can target a specific directory with `--dir` flag (default `.`)
+- [x] **SRCH-03**: Machine-readable output format: `File: <path> | Lines: <start>-<end> | Relevance: <score>`
+- [x] **SRCH-04**: User can control number of results with `--top-k` flag (default 10)
+- [x] **SRCH-05**: User can target a specific directory with `--dir` flag (default `.`)
 
 ### Infrastructure
 
@@ -84,11 +84,11 @@
 | IDX-06 | Phase 3 | Complete |
 | IDX-07 | Phase 3 | Complete |
 | IDX-08 | Phase 2 | Complete |
-| SRCH-01 | Phase 4 | Pending |
+| SRCH-01 | Phase 4 | Complete |
 | SRCH-02 | Phase 5 | Pending |
-| SRCH-03 | Phase 4 | Pending |
-| SRCH-04 | Phase 4 | Pending |
-| SRCH-05 | Phase 4 | Pending |
+| SRCH-03 | Phase 4 | Complete |
+| SRCH-04 | Phase 4 | Complete |
+| SRCH-05 | Phase 4 | Complete |
 | INFRA-01 | Phase 2 | Complete |
 | INFRA-02 | Phase 2 | Complete |
 | INFRA-03 | Phase 3 | Complete |
