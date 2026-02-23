@@ -47,6 +47,13 @@ export const EXTENSION_MAP: Record<string, FileType> = {
   '.mdx': 'text',
   '.txt': 'text',
   '.rst': 'text',
+  '.csv': 'text',
+  '.pdf': 'text',
+  // Code (structured/config files)
+  '.json': 'code',
+  '.yaml': 'code',
+  '.yml': 'code',
+  '.toml': 'code',
   // Image
   '.jpg': 'image',
   '.jpeg': 'image',
