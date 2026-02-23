@@ -1,1 +1,8 @@
-.planning/intel/
+node_modules/
+dist/
+.planning/
+spike/
+*.log
+.DS_Store
+.env
+.env.local
