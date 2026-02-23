@@ -13,7 +13,7 @@ ez-search delivers local semantic search over code, text, and images through a b
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Validation Spike** - Confirm Zvec and WebGPU work on target system before building on them
-- [ ] **Phase 2: Foundation and Infrastructure** - Project structure, CLI scaffold, ignore parsing, model loader, vector DB wrapper
+- [x] **Phase 2: Foundation and Infrastructure** - Project structure, CLI scaffold, ignore parsing, model loader, vector DB wrapper
 - [ ] **Phase 3: Code Indexing Pipeline** - End-to-end indexing with Jina code model, chunking, batching, incremental caching
 - [ ] **Phase 4: Search and Query** - Natural language query with ranked, machine-readable results
 - [ ] **Phase 5: Multi-Model Routing** - Extend to text (Nomic) and image (CLIP) models with auto-detection
@@ -41,15 +41,15 @@ Plans:
 **Requirements**: IDX-05, IDX-08, INFRA-01, INFRA-02, INFRA-04, INFRA-05
 **Success Criteria** (what must be TRUE):
   1. Running `ez-search --help` completes in under 200ms (lazy loading works, no models loaded)
-  2. `.ez-search/` directory is created at index root with separate vector collections for 768-dim and 512-dim models
+  2. `~/.ez-search/<project>-<hash>/` directory is created in user home with separate vector collections for 768-dim and 512-dim models
   3. File scanner respects .gitignore and .cursorignore rules, and `--no-ignore` flag disables exclusion
   4. Model router loads the correct model on first use and falls back gracefully from WebGPU to WASM/CPU
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md -- Project scaffold, types, path utilities, and CLI skeleton with lazy loading
-- [ ] 02-02-PLAN.md -- File scanner with ignore parsing and type classification
-- [ ] 02-03-PLAN.md -- Vector DB wrapper and model router services
+- [x] 02-01-PLAN.md -- Project scaffold, types, path utilities, and CLI skeleton with lazy loading
+- [x] 02-02-PLAN.md -- File scanner with ignore parsing and type classification
+- [x] 02-03-PLAN.md -- Vector DB wrapper and model router services
 
 ### Phase 3: Code Indexing Pipeline
 **Goal**: User can index a codebase and see it stored as searchable vector embeddings with incremental caching
@@ -119,7 +119,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Validation Spike | 2/2 | Complete | 2026-02-23 |
-| 2. Foundation and Infrastructure | 0/3 | Not started | - |
+| 2. Foundation and Infrastructure | 3/3 | Complete | 2026-02-22 |
 | 3. Code Indexing Pipeline | 0/3 | Not started | - |
 | 4. Search and Query | 0/2 | Not started | - |
 | 5. Multi-Model Routing | 0/3 | Not started | - |

@@ -16,7 +16,7 @@
 - [ ] **IDX-02**: User can index text/document files (.md, .txt, .pdf, .csv) using Nomic text model
 - [ ] **IDX-03**: User can index image files (.jpg, .png, .webp) using CLIP model
 - [ ] **IDX-04**: Incremental indexing skips unchanged files using mtime/size check + xxhash content verification
-- [ ] **IDX-05**: All index state stored in `.ez-search/` hidden directory at index root
+- [ ] **IDX-05**: All index state stored in `~/.ez-search/<project>-<hash>/` directory in user home
 - [ ] **IDX-06**: User can force a specific pipeline with `--type <code|text|image>` flag
 - [ ] **IDX-07**: User can clear existing index with `--clear` flag
 - [ ] **IDX-08**: Separate vector collections per model type (768-dim for code/text, 512-dim for images)
@@ -80,20 +80,20 @@
 | IDX-02 | Phase 5 | Pending |
 | IDX-03 | Phase 5 | Pending |
 | IDX-04 | Phase 3 | Pending |
-| IDX-05 | Phase 2 | Pending |
+| IDX-05 | Phase 2 | Complete |
 | IDX-06 | Phase 3 | Pending |
 | IDX-07 | Phase 3 | Pending |
-| IDX-08 | Phase 2 | Pending |
+| IDX-08 | Phase 2 | Complete |
 | SRCH-01 | Phase 4 | Pending |
 | SRCH-02 | Phase 5 | Pending |
 | SRCH-03 | Phase 4 | Pending |
 | SRCH-04 | Phase 4 | Pending |
 | SRCH-05 | Phase 4 | Pending |
-| INFRA-01 | Phase 2 | Pending |
-| INFRA-02 | Phase 2 | Pending |
+| INFRA-01 | Phase 2 | Complete |
+| INFRA-02 | Phase 2 | Complete |
 | INFRA-03 | Phase 3 | Pending |
-| INFRA-04 | Phase 2 | Pending |
-| INFRA-05 | Phase 2 | Pending |
+| INFRA-04 | Phase 2 | Complete |
+| INFRA-05 | Phase 2 | Complete |
 | INFRA-06 | Phase 3 | Pending |
 | STAT-01 | Phase 6 | Pending |
 
