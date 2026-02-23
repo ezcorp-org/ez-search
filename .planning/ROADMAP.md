@@ -19,6 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Multi-Model Routing** - Extend to text (Nomic) and image (CLIP) models with auto-detection
 - [x] **Phase 6: Status and Polish** - Status command, error handling, edge cases
 - [ ] **Phase 7: Gap Closure** - Query optimization, EMPTY_DIR wiring, code hygiene
+- [ ] **Phase 8: Project-Scoped Storage** - Move index data into project directory, keep shared models global
 
 ## Phase Details
 
@@ -114,7 +115,7 @@ Plans:
 ### Phase 7: Gap Closure
 **Goal**: Close audit gaps — query only loads models for indexed types, EMPTY_DIR error fires, dead code removed
 **Depends on**: Phase 6
-**Requirements**: SRCH-02 (partial → satisfied)
+**Requirements**: SRCH-02 (partial -> satisfied)
 **Gap Closure**: Closes gaps from v1-MILESTONE-AUDIT.md
 **Success Criteria** (what must be TRUE):
   1. Query command pre-checks manifest to determine which model types are indexed, and only loads models for types that have data
@@ -125,10 +126,23 @@ Plans:
 Plans:
 - [ ] 07-01-PLAN.md -- Query manifest pre-detection, EMPTY_DIR wiring, dead code cleanup
 
+### Phase 8: Project-Scoped Storage
+**Goal**: Index data stored at `<project>/.ez-search/` instead of `~/.ez-search/<hash>/`; shared models remain at `~/.ez-search/models/`
+**Depends on**: Phase 6
+**Success Criteria** (what must be TRUE):
+  1. Running `ez-search index .` stores vectors, manifest, and schema version inside `<project>/.ez-search/`
+  2. Running `ez-search status` reports the project-local storage path
+  3. Shared model weights remain at `~/.ez-search/models/` (unchanged)
+  4. No references to old hash-based storage paths remain in source code
+**Plans**: 1 plan
+
+Plans:
+- [ ] 08-01-PLAN.md -- Refactor storage paths and manifest location to project-scoped layout
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -138,4 +152,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 4. Search and Query | 1/1 | Complete | 2026-02-22 |
 | 5. Multi-Model Routing | 3/3 | Complete | 2026-02-23 |
 | 6. Status and Polish | 1/1 | Complete | 2026-02-23 |
-| 7. Gap Closure | 0/1 | Pending | — |
+| 7. Gap Closure | 0/1 | Pending | -- |
+| 8. Project-Scoped Storage | 0/1 | Pending | -- |
