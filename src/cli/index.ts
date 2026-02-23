@@ -15,7 +15,8 @@ program
   .option('--type <type>', 'filter files by type: code|text|image')
   .option('-q, --quiet', 'suppress status output')
   .option('--clear', 'remove existing index before indexing')
-  .action(async (targetPath: string, options: { ignore: boolean; type?: string; quiet?: boolean; clear?: boolean }) => {
+  .option('--pretty', 'human-readable output')
+  .action(async (targetPath: string, options: { ignore: boolean; type?: string; quiet?: boolean; clear?: boolean; pretty?: boolean }) => {
     const { runIndex } = await import('./commands/index-cmd.js');
     await runIndex(targetPath, options);
   });
