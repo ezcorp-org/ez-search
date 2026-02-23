@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** Developers can semantically search their codebase locally with zero cloud dependencies -- fast enough to be useful as a retrieval engine for AI assistants.
-**Current focus:** Phase 5: Multi-Model Routing (IN PROGRESS)
+**Current focus:** Phase 5: Multi-Model Routing (COMPLETE)
 
 ## Current Position
 
 Phase: 5 of 6 (Multi-Model Routing)
-Plan: 2 of 3 in current phase
-Status: In progress — plans 1-2 complete, plan 3 pending
-Last activity: 2026-02-23 -- Completed 05-02-PLAN.md (CLIP image embedding service)
+Plan: 3 of 3 in current phase
+Status: Phase complete — all 3 plans done
+Last activity: 2026-02-23 -- Completed 05-03-PLAN.md (multi-type routing integration)
 
-Progress: [█████████░] 78%
+Progress: [██████████] 83% (10/12 plans complete)
 
 ## Performance Metrics
 
@@ -31,7 +31,7 @@ Progress: [█████████░] 78%
 | 02-foundation-and-infrastructure | 3/3 | 29 min | ~10 min |
 | 03-code-indexing-pipeline | 3/3 | ~16 min | ~5 min |
 | 04-search-and-query | 1/1 | ~7 min | 7 min |
-| 05-multi-model-routing | 2/3 | ~6 min | 3 min |
+| 05-multi-model-routing | 3/3 | ~21 min | 7 min |
 
 **Recent Trend:**
 - Last 5 plans: 25 min, <1 min, 8 min, 7 min, 5 min
@@ -71,7 +71,9 @@ Recent decisions affecting current work:
 - **Manifest version mismatch → empty manifest** -- No migration; simpler to re-index than handle partial compatibility.
 - **makeChunkId format** -- `<12-char sha256-path-hash>_<4-digit-index>`, no colons (Zvec constraint).
 - **Vector DB schema v2** -- chunkText STRING field added; ensureSchemaVersion() auto-wipes col-768/col-512 on mismatch.
-- **typeFilter defaults to 'code'** -- When --type is not specified, index command defaults to code pipeline only. Text/image return structured JSON errors (Phase 5).
+- **All three type pipelines active** -- Index command now routes code/text/image automatically when --type omitted; early-exit stubs removed.
+- **Mixed col-768 query strategy** -- Over-fetch topK*5 from col-768, then filter by modelId (jina for code, nomic for text); fetchCount = topK*5*(hasPostFilters?3:1).
+- **Grouped query output** -- JSON envelope { code: [...], text: [...] } with optional keys; text output uses ## Code / ## Text headers.
 - **Optimize-then-save ordering** -- col768.optimize() always called before saveManifest(). Manifest is the integrity marker; only written after optimize succeeds.
 - **--clear wipes entire storagePath** -- rmSync(storagePath, recursive) removes col-768, col-512, and schema-version.json atomically; openProjectCollections() recreates everything fresh.
 - **Chunk-level diff by index position** -- existingChunks[chunk.chunkIndex] compared by textHash; unchanged chunks skip re-embedding and count as reused.
@@ -98,6 +100,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-23T13:36:11Z
-Stopped at: Completed 05-02-PLAN.md — CLIP image embedding service with createImageEmbeddingPipeline().
+Last session: 2026-02-23T13:52:00Z
+Stopped at: Completed 05-03-PLAN.md — multi-type index routing and grouped query. Phase 5 complete.
 Resume file: None
