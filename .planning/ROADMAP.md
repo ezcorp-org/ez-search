@@ -77,11 +77,10 @@ Plans:
   2. Output follows the machine-readable format: `File: <path> | Lines: <start>-<end> | Relevance: <score>`
   3. `--top-k 5` limits results to 5 entries; default is 10
   4. `--dir ./src` scopes the search to the specified subdirectory
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 04-01: Query command -- embed query, vector search, format output
-- [ ] 04-02: Output formatting and filtering (--top-k, --dir)
+- [ ] 04-01-PLAN.md -- Full query pipeline: embed query, vector search, score normalization, chunk collapsing, JSON/text output, all flags (--top-k, --dir, --threshold, --format)
 
 ### Phase 5: Multi-Model Routing
 **Goal**: User can index and search text documents and images alongside code, with automatic file type detection
@@ -121,6 +120,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. Validation Spike | 2/2 | Complete | 2026-02-23 |
 | 2. Foundation and Infrastructure | 3/3 | Complete | 2026-02-22 |
 | 3. Code Indexing Pipeline | 3/3 | Complete | 2026-02-22 |
-| 4. Search and Query | 0/2 | Not started | - |
+| 4. Search and Query | 0/1 | Not started | - |
 | 5. Multi-Model Routing | 0/3 | Not started | - |
 | 6. Status and Polish | 0/1 | Not started | - |
