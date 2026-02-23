@@ -10,7 +10,7 @@
  */
 
 import crypto from 'node:crypto';
-import { readFileSync, writeFileSync, renameSync, unlinkSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, renameSync, existsSync, mkdirSync } from 'fs';
 import * as path from 'path';
 import { resolveProjectStoragePath } from '../config/paths.js';
 
@@ -83,18 +83,6 @@ export function saveManifest(projectDir: string, manifest: Manifest): void {
   const tmpPath = filePath + '.tmp';
   writeFileSync(tmpPath, JSON.stringify(manifest));
   renameSync(tmpPath, filePath);
-}
-
-/**
- * Delete the manifest cache file if it exists.
- */
-export function clearManifest(projectDir: string): void {
-  const filePath = manifestPath(projectDir);
-  try {
-    unlinkSync(filePath);
-  } catch {
-    // File doesn't exist — nothing to clear
-  }
 }
 
 // ── Hashing ───────────────────────────────────────────────────────────────────
