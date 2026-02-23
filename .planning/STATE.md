@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-22)
 Phase: 8 of 8 (Project-Scoped Storage)
 Plan: 1 of 1 in current phase
 Status: Phase complete — all plans executed, verified (8/8 must-haves)
-Last activity: 2026-02-23 -- Phase 8 complete: index data moved to project-scoped .ez-search/
+Last activity: 2026-02-23 -- Completed quick task 001: clean up tech debt
 
 Progress: [██████████] 100% (14/14 plans complete)
 
@@ -102,6 +102,12 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 None yet.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 001 | Clean up tech debt: remove clearManifest dead export, fix --type NO_INDEX guard | 2026-02-23 | cf02f92 | [001-clean-up-tech-debt](./quick/001-clean-up-tech-debt/) |
 
 ### Blockers/Concerns
 
