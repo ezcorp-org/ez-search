@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** Developers can semantically search their codebase locally with zero cloud dependencies -- fast enough to be useful as a retrieval engine for AI assistants.
-**Current focus:** Phase 4: Search and Query (COMPLETE)
+**Current focus:** Phase 5: Multi-Model Routing (IN PROGRESS)
 
 ## Current Position
 
-Phase: 4 of 6 (Search and Query)
-Plan: 1 of 1 in current phase
-Status: Phase complete — all plans executed, verified
-Last activity: 2026-02-22 -- Phase 4 execution complete
+Phase: 5 of 6 (Multi-Model Routing)
+Plan: 1 of 3 in current phase
+Status: In progress — plan 1 complete, plans 2-3 pending
+Last activity: 2026-02-23 -- Completed 05-01-PLAN.md (text chunker service)
 
-Progress: [████████░░] 67%
+Progress: [█████████░] 75%
 
 ## Performance Metrics
 
@@ -31,9 +31,10 @@ Progress: [████████░░] 67%
 | 02-foundation-and-infrastructure | 3/3 | 29 min | ~10 min |
 | 03-code-indexing-pipeline | 3/3 | ~16 min | ~5 min |
 | 04-search-and-query | 1/1 | ~7 min | 7 min |
+| 05-multi-model-routing | 1/3 | ~5 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 2 min, 25 min, <1 min, 8 min, 7 min
+- Last 5 plans: 25 min, <1 min, 8 min, 7 min, 5 min
 - Trend: fast (service/pipeline wiring tasks)
 
 *Updated after each plan completion*
@@ -78,6 +79,9 @@ Recent decisions affecting current work:
 - **Query over-fetch** -- Fetch topK*3 from Zvec when --dir or --threshold filters are active to ensure enough candidates after post-filtering.
 - **Consecutive chunk merging** -- Chunks from the same file with chunkIndex differing by exactly 1 are merged; non-consecutive produce separate results.
 - **--format replaces --pretty** -- Both index and query commands use `--format text` for human-readable output; --pretty removed.
+- **Text chunking: MAX_CHUNK_CHARS=1600** -- ~400 Nomic tokens per chunk; MIN_CHUNK_CHARS=200 prevents tiny fragments.
+- **pdf-parse dynamic import** -- extractPdfText() uses dynamic import('pdf-parse') to defer loading until PDF extraction is called.
+- **Paragraph-boundary chunking order** -- Expand oversized paragraphs via sentence split first, then merge small pieces up to MAX_CHUNK_CHARS.
 
 ### Pending Todos
 
@@ -90,6 +94,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-22
-Stopped at: Phase 4 complete — query pipeline verified, all must-haves passed.
+Last session: 2026-02-23
+Stopped at: Completed 05-01-PLAN.md — text chunker service with chunkTextFile() and extractPdfText().
 Resume file: None
