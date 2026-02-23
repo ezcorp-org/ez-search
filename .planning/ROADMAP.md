@@ -105,10 +105,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Running `ez-search status` shows file count, last indexed timestamp, active model types, and index size on disk
   2. All commands produce clear error messages for common failures (no index found, empty directory, unsupported file type)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 06-01: Status command and error handling polish
+- [ ] 06-01-PLAN.md -- Status command implementation with JSON/text output, shared error utility, error normalization across all commands
 
 ## Progress
 
