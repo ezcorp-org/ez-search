@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** Developers can semantically search their codebase locally with zero cloud dependencies -- fast enough to be useful as a retrieval engine for AI assistants.
-**Current focus:** Phase 2: Foundation and Infrastructure (COMPLETE)
+**Current focus:** Phase 3: Code Indexing Pipeline (In progress)
 
 ## Current Position
 
-Phase: 2 of 6 (Foundation and Infrastructure)
-Plan: 3 of 3 in current phase
-Status: Phase complete — verified, all 4/4 must-haves passed
-Last activity: 2026-02-22 -- Phase 2 verified and complete
+Phase: 3 of 6 (Code Indexing Pipeline)
+Plan: 2 of N in current phase
+Status: In progress — 03-02 complete (chunker service)
+Last activity: 2026-02-22 -- Completed 03-02-PLAN.md (chunker service)
 
-Progress: [████░░░░░░] 33%
+Progress: [█████░░░░░] 40%
 
 ## Performance Metrics
 
@@ -29,9 +29,10 @@ Progress: [████░░░░░░] 33%
 |-------|-------|-------|----------|
 | 01-validation-spike | 2/2 | 62 min | 31 min |
 | 02-foundation-and-infrastructure | 3/3 | 29 min | ~10 min |
+| 03-code-indexing-pipeline | 2/N | ~1 min | <1 min |
 
 **Recent Trend:**
-- Last 5 plans: 40 min, 2 min, 2 min, 25 min
+- Last 5 plans: 40 min, 2 min, 2 min, 25 min, <1 min
 - Trend: fast (service implementation tasks)
 
 *Updated after each plan completion*
@@ -63,6 +64,8 @@ Recent decisions affecting current work:
 - **VectorCollection close() is a no-op** -- Zvec handles GC-cleaned; use destroySync() only to delete from disk.
 - **embed() uses Promise.all** -- Batch parallelism on CPU via Promise.all; ONNX handles internal concurrency.
 - **tsx CJS conflict in /tmp** -- Files in /tmp without package.json treated as CJS by tsx, rejecting top-level await. Use async main() wrapper or .mts extension.
+- **Tokenizer singleton pattern** -- Load AutoTokenizer once via loadTokenizer(), pass to all chunkFile() calls. Loading per-file costs ~1s each.
+- **encode() returns array-like not plain Array** -- Jina tokenizer encode() has .length but Array.isArray() returns false. Use Array.from() for slice(), or cast `(ids as unknown as { length: number }).length` for counting.
 
 ### Pending Todos
 
@@ -76,5 +79,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Phase 2 complete and verified. All infrastructure modules built and independently testable.
+Stopped at: Completed 03-02-PLAN.md — chunker service (src/services/chunker.ts) built and verified.
 Resume file: None
