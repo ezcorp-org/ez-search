@@ -13,6 +13,7 @@
  */
 
 import { CLIPVisionModelWithProjection, AutoProcessor, RawImage, env } from '@huggingface/transformers';
+import { pathToFileURL } from 'node:url';
 import { resolveModelCachePath } from '../config/paths.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -70,9 +71,8 @@ export async function createImageEmbeddingPipeline(): Promise<ImageEmbeddingPipe
     dim: CLIP_DIM,
 
     async embedImage(absolutePath: string): Promise<Float32Array> {
-      // RawImage.fromURL works with file:// URIs and bare absolute paths.
-      // Using 'file://' prefix for reliability with local paths on all platforms.
-      const url = absolutePath.startsWith('file://') ? absolutePath : `file://${absolutePath}`;
+      // pathToFileURL properly encodes spaces and special characters in file paths.
+      const url = absolutePath.startsWith('file://') ? absolutePath : pathToFileURL(absolutePath).href;
       const image = await RawImage.fromURL(url);
 
       // Preprocess: resize, normalize, convert to tensor expected by CLIP
