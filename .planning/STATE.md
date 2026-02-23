@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-22)
 
 **Core value:** Developers can semantically search their codebase locally with zero cloud dependencies -- fast enough to be useful as a retrieval engine for AI assistants.
-**Current focus:** Phase 3: Code Indexing Pipeline (COMPLETE)
+**Current focus:** Phase 4: Search and Query (in progress)
 
 ## Current Position
 
-Phase: 3 of 6 (Code Indexing Pipeline)
-Plan: 3 of 3 in current phase
-Status: Phase complete — all 3 plans executed, pending verification
-Last activity: 2026-02-22 -- Phase 3 execution complete
+Phase: 4 of 6 (Search and Query)
+Plan: 1 of ? in current phase
+Status: In progress — plan 04-01 complete
+Last activity: 2026-02-23 -- Completed 04-01-PLAN.md (query command pipeline)
 
-Progress: [██████░░░░] 50%
+Progress: [████████░░] ~57%
 
 ## Performance Metrics
 
@@ -30,9 +30,10 @@ Progress: [██████░░░░] 50%
 | 01-validation-spike | 2/2 | 62 min | 31 min |
 | 02-foundation-and-infrastructure | 3/3 | 29 min | ~10 min |
 | 03-code-indexing-pipeline | 3/3 | ~16 min | ~5 min |
+| 04-search-and-query | 1/? | ~7 min | 7 min |
 
 **Recent Trend:**
-- Last 5 plans: 2 min, 2 min, 25 min, <1 min, 8 min
+- Last 5 plans: 2 min, 25 min, <1 min, 8 min, 7 min
 - Trend: fast (service/pipeline wiring tasks)
 
 *Updated after each plan completion*
@@ -73,6 +74,10 @@ Recent decisions affecting current work:
 - **Optimize-then-save ordering** -- col768.optimize() always called before saveManifest(). Manifest is the integrity marker; only written after optimize succeeds.
 - **--clear wipes entire storagePath** -- rmSync(storagePath, recursive) removes col-768, col-512, and schema-version.json atomically; openProjectCollections() recreates everything fresh.
 - **Chunk-level diff by index position** -- existingChunks[chunk.chunkIndex] compared by textHash; unchanged chunks skip re-embedding and count as reused.
+- **Score normalization** -- COSINE distance converts to score via `1 - distance`, clamped [0,1], rounded to 4 decimals.
+- **Query over-fetch** -- Fetch topK*3 from Zvec when --dir or --threshold filters are active to ensure enough candidates after post-filtering.
+- **Consecutive chunk merging** -- Chunks from the same file with chunkIndex differing by exactly 1 are merged; non-consecutive produce separate results.
+- **--format replaces --pretty** -- Both index and query commands use `--format text` for human-readable output; --pretty removed.
 
 ### Pending Todos
 
@@ -85,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-22
-Stopped at: Completed 03-03-PLAN.md — full index command pipeline wired end-to-end.
+Last session: 2026-02-23T03:19:19Z - 2026-02-23T03:26:00Z
+Stopped at: Completed 04-01-PLAN.md — query command pipeline fully implemented.
 Resume file: None
