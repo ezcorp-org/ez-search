@@ -207,7 +207,7 @@ describe('text-to-image query', () => {
       col512.insert(makeChunkId(img.path, 0), makeFakeEmbedding(img.seed), {
         filePath: img.path,
         chunkIndex: 0,
-        modelId: 'Xenova/clip-vit-base-patch32',
+        modelId: 'Xenova/clip-vit-base-patch16',
         lineStart: 0,
         lineEnd: 0,
         chunkText: '',

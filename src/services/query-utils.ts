@@ -27,6 +27,11 @@ export type CollapsedResult = {
   chunkText: string;
 };
 
+export type ImageResult = {
+  filePath: string;
+  score: number;
+};
+
 export interface FilterOptions {
   threshold?: number;
   dir?: string;
@@ -117,4 +122,42 @@ export function filterAndCollapse(
 
   collapsed.sort((a, b) => b.score - a.score);
   return collapsed.slice(0, topK);
+}
+
+/**
+ * Filter image results by modelId, threshold, dir prefix; deduplicate by filePath
+ * keeping highest score; sort by score desc; slice to topK.
+ *
+ * No chunk collapsing needed — images produce one vector per file.
+ */
+export function filterImageResults(
+  results: NormalizedResult[],
+  modelFilter: (id: string) => boolean,
+  options: FilterOptions,
+): ImageResult[] {
+  const { threshold, dir, topK } = options;
+
+  let filtered = results.filter((r) => modelFilter(r.modelId));
+
+  if (threshold !== undefined) {
+    filtered = filtered.filter((r) => r.score >= threshold);
+  }
+
+  if (dir !== undefined) {
+    const normalizedDir = dir.replace(/^\.\//, '').replace(/\/$/, '');
+    filtered = filtered.filter((r) => r.filePath.startsWith(normalizedDir));
+  }
+
+  // Deduplicate by filePath, keeping highest score
+  const byFile = new Map<string, number>();
+  for (const r of filtered) {
+    const existing = byFile.get(r.filePath);
+    if (existing === undefined || r.score > existing) {
+      byFile.set(r.filePath, r.score);
+    }
+  }
+
+  const deduped: ImageResult[] = Array.from(byFile, ([filePath, score]) => ({ filePath, score }));
+  deduped.sort((a, b) => b.score - a.score);
+  return deduped.slice(0, topK);
 }

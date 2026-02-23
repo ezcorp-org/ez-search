@@ -18,7 +18,7 @@
  * Model routing:
  *   code  -> jinaai/jina-embeddings-v2-base-code, col-768
  *   text  -> nomic-ai/nomic-embed-text-v1.5, col-768  (prefix: "search_document: ")
- *   image -> Xenova/clip-vit-base-patch32, col-512     (one vector per file)
+ *   image -> Xenova/clip-vit-base-patch16, col-512     (one vector per file)
  */
 
 import * as path from 'path';

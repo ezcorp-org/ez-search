@@ -7,7 +7,6 @@
 
 export type ErrorCode =
   | 'NO_INDEX'
-  | 'IMAGES_ONLY'
   | 'EMPTY_DIR'
   | 'UNSUPPORTED_TYPE'
   | 'CORRUPT_MANIFEST'
