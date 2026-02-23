@@ -1,3 +1,12 @@
+# Requirements Archive: v1.0 MVP
+
+**Archived:** 2026-02-23
+**Status:** SHIPPED
+
+This is the archived requirements specification for v1.0.
+
+---
+
 # Requirements: ez-search
 
 **Defined:** 2026-02-22
@@ -16,10 +25,10 @@
 - [x] **IDX-02**: User can index text/document files (.md, .txt, .pdf, .csv) using Nomic text model
 - [x] **IDX-03**: User can index image files (.jpg, .png, .webp) using CLIP model
 - [x] **IDX-04**: Incremental indexing skips unchanged files using mtime/size check + xxhash content verification
-- [ ] **IDX-05**: All index state stored in `~/.ez-search/<project>-<hash>/` directory in user home
+- [x] **IDX-05**: All index state stored in `<project>/.ez-search/` directory (updated from original ~/.ez-search/<hash>/ spec)
 - [x] **IDX-06**: User can force a specific pipeline with `--type <code|text|image>` flag
 - [x] **IDX-07**: User can clear existing index with `--clear` flag
-- [ ] **IDX-08**: Separate vector collections per model type (768-dim for code/text, 512-dim for images)
+- [x] **IDX-08**: Separate vector collections per model type (768-dim for code/text, 512-dim for images)
 
 ### Search
 
@@ -31,44 +40,16 @@
 
 ### Infrastructure
 
-- [ ] **INFRA-01**: WebGPU inference with graceful fallback to WASM/CPU when GPU unavailable
-- [ ] **INFRA-02**: Lazy model loading -- models loaded only after command is parsed (cold start <1.5s)
+- [x] **INFRA-01**: WebGPU inference with graceful fallback to WASM/CPU when GPU unavailable
+- [x] **INFRA-02**: Lazy model loading -- models loaded only after command is parsed (cold start <1.5s)
 - [x] **INFRA-03**: Batch WebGPU inference in batches of 32 to avoid VRAM OOM
-- [ ] **INFRA-04**: Respect .gitignore and .cursorignore for file exclusion during indexing
-- [ ] **INFRA-05**: User can disable ignore file exclusion with a flag (e.g., `--no-ignore`)
+- [x] **INFRA-04**: Respect .gitignore and .cursorignore for file exclusion during indexing
+- [x] **INFRA-05**: User can disable ignore file exclusion with a flag (e.g., `--no-ignore`)
 - [x] **INFRA-06**: Text/code chunking with ~500 token chunks and 50 token overlap, tracking start/end line numbers
 
 ### Status
 
 - [x] **STAT-01**: User can run `ez-search status` to see index info (file count, last indexed, model types, size)
-
-## v2 Requirements
-
-### MCP Integration
-
-- **MCP-01**: Expose ez-search as an MCP server tool for direct AI assistant integration
-- **MCP-02**: AI assistants can discover and call ez-search query via MCP protocol
-
-### Advanced Search
-
-- **ASRCH-01**: Hybrid search combining semantic similarity with keyword/BM25 matching
-- **ASRCH-02**: Image-to-image search (query with an image path instead of text)
-
-### Quality
-
-- **QUAL-01**: AST-aware code chunking via tree-sitter for better code search relevance
-- **QUAL-02**: Watch mode for automatic re-indexing when files change
-
-## Out of Scope
-
-| Feature | Reason |
-|---------|--------|
-| Cloud/remote vector databases | Defeats the privacy-first purpose |
-| GUI or web interface | CLI-only tool |
-| Model fine-tuning or training | Uses pre-trained ONNX models |
-| Multi-directory unified search | Each directory has its own index |
-| Bundled LLM/answer generation | Primary consumer (AI assistants) already has reasoning capability |
-| OAuth/authentication | Local tool, no auth needed |
 
 ## Traceability
 
@@ -80,12 +61,12 @@
 | IDX-02 | Phase 5 | Complete |
 | IDX-03 | Phase 5 | Complete |
 | IDX-04 | Phase 3 | Complete |
-| IDX-05 | Phase 2 | Complete |
+| IDX-05 | Phase 8 | Complete |
 | IDX-06 | Phase 3 | Complete |
 | IDX-07 | Phase 3 | Complete |
 | IDX-08 | Phase 2 | Complete |
 | SRCH-01 | Phase 4 | Complete |
-| SRCH-02 | Phase 5 | Complete |
+| SRCH-02 | Phase 7 | Complete |
 | SRCH-03 | Phase 4 | Complete |
 | SRCH-04 | Phase 4 | Complete |
 | SRCH-05 | Phase 4 | Complete |
@@ -99,9 +80,16 @@
 
 **Coverage:**
 - v1 requirements: 22 total
-- Mapped to phases: 22
-- Unmapped: 0
+- Shipped: 22
+- Dropped: 0
 
 ---
-*Requirements defined: 2026-02-22*
-*Last updated: 2026-02-22 after roadmap creation*
+
+## Milestone Summary
+
+**Shipped:** 22 of 22 v1 requirements
+**Adjusted:** IDX-05 changed from `~/.ez-search/<hash>/` to `<project>/.ez-search/` (Phase 8)
+**Dropped:** None
+
+---
+*Archived: 2026-02-23 as part of v1.0 milestone completion*
