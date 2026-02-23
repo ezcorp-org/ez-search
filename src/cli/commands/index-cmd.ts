@@ -28,7 +28,7 @@ const BATCH_SIZE = 32;
 
 export async function runIndex(
   targetPath: string,
-  options: { ignore: boolean; type?: string; quiet?: boolean; clear?: boolean; pretty?: boolean }
+  options: { ignore: boolean; type?: string; quiet?: boolean; clear?: boolean; format?: string }
 ): Promise<void> {
   const startTime = Date.now();
 
@@ -286,7 +286,7 @@ export async function runIndex(
     };
 
     if (!options.quiet) {
-      if (options.pretty) {
+      if (options.format === 'text') {
         const secs = (durationMs / 1000).toFixed(1);
         if (!hasChanges) {
           console.log(`No changes detected. ${scannedFiles.length} files scanned in ${secs}s.`);
@@ -303,7 +303,7 @@ export async function runIndex(
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    if (options.pretty) {
+    if (options.format === 'text') {
       console.error(`Error: ${message}`);
     } else {
       console.log(JSON.stringify({ status: 'error', message }));
