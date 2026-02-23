@@ -73,9 +73,11 @@ export async function runQuery(
     }
     const isStale = staleFileCount > 0;
 
-    // 3. Open vector collections (after auto-index so DB files exist)
-    const { openProjectCollections } = await import('../../services/vector-db.js');
-    const { col768 } = openProjectCollections(projectDir);
+    // 3. Open only the text/code collection (query never needs col-512 for images)
+    const { openCollection } = await import('../../services/vector-db.js');
+    const col768 = openCollection(projectDir, 'col-768');
+
+    try {
 
     // 4. Determine which types to search (auto-detect from manifest)
     type QueryType = 'code' | 'text' | 'image';
@@ -267,6 +269,10 @@ export async function runQuery(
       }
 
       console.log(JSON.stringify(output));
+    }
+
+    } finally {
+      col768.close();
     }
   } catch (err) {
     const { emitError } = await import('../errors.js');
