@@ -148,7 +148,11 @@ function createCollection(storageDir: string, name: string, dim: number): Vector
           chunkText: String(metadata['chunkText'] ?? ''),
         },
       };
-      const status = handle.insertSync(doc);
+      let status = handle.insertSync(doc);
+      if (!status.ok && status.code === 'ZVEC_ALREADY_EXISTS') {
+        handle.deleteSync(id);
+        status = handle.insertSync(doc);
+      }
       if (!status.ok) {
         throw new Error(`Zvec insert failed for id="${id}": code=${status.code} ${status.message}`);
       }
