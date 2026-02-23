@@ -40,7 +40,7 @@
 
 ### Status
 
-- [ ] **STAT-01**: User can run `ez-search status` to see index info (file count, last indexed, model types, size)
+- [x] **STAT-01**: User can run `ez-search status` to see index info (file count, last indexed, model types, size)
 
 ## v2 Requirements
 
@@ -95,7 +95,7 @@
 | INFRA-04 | Phase 2 | Complete |
 | INFRA-05 | Phase 2 | Complete |
 | INFRA-06 | Phase 3 | Complete |
-| STAT-01 | Phase 6 | Pending |
+| STAT-01 | Phase 6 | Complete |
 
 **Coverage:**
 - v1 requirements: 22 total
