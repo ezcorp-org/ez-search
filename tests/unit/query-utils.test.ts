@@ -3,6 +3,7 @@ import type { QueryResult } from '../../src/services/vector-db.js';
 import {
   normalizeResults,
   filterAndCollapse,
+  filterImageResults,
   type NormalizedResult,
 } from '../../src/services/query-utils.js';
 
@@ -175,5 +176,103 @@ describe('filterAndCollapse', () => {
     ];
     const collapsed = filterAndCollapse(results, acceptAll, { topK: 10 });
     expect(collapsed).toHaveLength(2);
+  });
+});
+
+describe('filterImageResults', () => {
+  const acceptAll = () => true;
+
+  function makeImageNormalized(overrides: Partial<NormalizedResult> = {}): NormalizedResult {
+    return {
+      filePath: 'photos/cat.jpg',
+      chunkIndex: 0,
+      lineStart: 0,
+      lineEnd: 0,
+      chunkText: '',
+      modelId: 'Xenova/clip-vit-base-patch16',
+      score: 0.5,
+      ...overrides,
+    };
+  }
+
+  test('filters by modelId function', () => {
+    const results = [
+      makeImageNormalized({ modelId: 'Xenova/clip-vit-base-patch16', score: 0.6 }),
+      makeImageNormalized({ modelId: 'nomic-v1', score: 0.8, filePath: 'doc.md' }),
+    ];
+    const filtered = filterImageResults(results, (id) => id.includes('clip'), { topK: 10 });
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].filePath).toBe('photos/cat.jpg');
+  });
+
+  test('applies threshold filter', () => {
+    const results = [
+      makeImageNormalized({ score: 0.7, filePath: 'a.png' }),
+      makeImageNormalized({ score: 0.2, filePath: 'b.png' }),
+    ];
+    const filtered = filterImageResults(results, acceptAll, { threshold: 0.5, topK: 10 });
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].filePath).toBe('a.png');
+  });
+
+  test('applies dir prefix filter with normalization', () => {
+    const results = [
+      makeImageNormalized({ filePath: 'screenshots/ui.png' }),
+      makeImageNormalized({ filePath: 'photos/dog.jpg' }),
+    ];
+    const filtered = filterImageResults(results, acceptAll, { dir: './screenshots/', topK: 10 });
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].filePath).toBe('screenshots/ui.png');
+  });
+
+  test('deduplicates by filePath keeping highest score', () => {
+    const results = [
+      makeImageNormalized({ filePath: 'cat.jpg', score: 0.3 }),
+      makeImageNormalized({ filePath: 'cat.jpg', score: 0.8 }),
+      makeImageNormalized({ filePath: 'cat.jpg', score: 0.5 }),
+    ];
+    const filtered = filterImageResults(results, acceptAll, { topK: 10 });
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].score).toBe(0.8);
+  });
+
+  test('sorts by score descending', () => {
+    const results = [
+      makeImageNormalized({ filePath: 'a.png', score: 0.3 }),
+      makeImageNormalized({ filePath: 'b.png', score: 0.9 }),
+      makeImageNormalized({ filePath: 'c.png', score: 0.6 }),
+    ];
+    const filtered = filterImageResults(results, acceptAll, { topK: 10 });
+    expect(filtered.map((r) => r.score)).toEqual([0.9, 0.6, 0.3]);
+  });
+
+  test('slices to topK', () => {
+    const results = [
+      makeImageNormalized({ filePath: 'a.png', score: 0.9 }),
+      makeImageNormalized({ filePath: 'b.png', score: 0.7 }),
+      makeImageNormalized({ filePath: 'c.png', score: 0.5 }),
+    ];
+    const filtered = filterImageResults(results, acceptAll, { topK: 2 });
+    expect(filtered).toHaveLength(2);
+    expect(filtered[0].filePath).toBe('a.png');
+    expect(filtered[1].filePath).toBe('b.png');
+  });
+
+  test('returns only filePath and score (no chunk fields)', () => {
+    const results = [makeImageNormalized()];
+    const filtered = filterImageResults(results, acceptAll, { topK: 10 });
+    expect(filtered).toHaveLength(1);
+    expect(Object.keys(filtered[0]).sort()).toEqual(['filePath', 'score']);
+  });
+
+  test('returns empty array when no results match', () => {
+    const results = [makeImageNormalized({ modelId: 'jina-v2' })];
+    const filtered = filterImageResults(results, (id) => id.includes('clip'), { topK: 10 });
+    expect(filtered).toEqual([]);
+  });
+
+  test('handles empty input', () => {
+    const filtered = filterImageResults([], acceptAll, { topK: 10 });
+    expect(filtered).toEqual([]);
   });
 });

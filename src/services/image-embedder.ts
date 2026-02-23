@@ -17,7 +17,7 @@ import { resolveModelCachePath } from '../config/paths.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CLIP_MODEL_ID = 'Xenova/clip-vit-base-patch32';
+const CLIP_MODEL_ID = 'Xenova/clip-vit-base-patch16';
 const CLIP_DIM = 512;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -42,7 +42,7 @@ export interface ImageEmbeddingPipeline {
   embedImage(buf: Buffer | Uint8Array): Promise<Float32Array>;
   /** The HuggingFace model ID that was loaded */
   readonly modelId: string;
-  /** Embedding dimension — always 512 for CLIP ViT-B/32 */
+  /** Embedding dimension — always 512 for CLIP ViT-B/16 */
   readonly dim: number;
   /** Release resources held by the vision model */
   dispose(): Promise<void>;
@@ -68,7 +68,7 @@ function l2Normalize(vec: Float32Array): Float32Array {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * Create an ImageEmbeddingPipeline backed by CLIP ViT-B/32 (fp32).
+ * Create an ImageEmbeddingPipeline backed by CLIP ViT-B/16 (fp32).
  *
  * Loads the AutoProcessor and CLIPVisionModelWithProjection in parallel.
  * Model weights are cached in ~/.ez-search/models/.
@@ -121,7 +121,7 @@ export async function createImageEmbeddingPipeline(): Promise<ImageEmbeddingPipe
 }
 
 /**
- * Create a ClipTextPipeline backed by CLIP ViT-B/32 (fp32).
+ * Create a ClipTextPipeline backed by CLIP ViT-B/16 (fp32).
  *
  * Loads AutoTokenizer and CLIPTextModelWithProjection in parallel.
  * Used for text-to-image search: encode query text into CLIP's 512-dim space,

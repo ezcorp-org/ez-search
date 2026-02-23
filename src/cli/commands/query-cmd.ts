@@ -8,17 +8,17 @@
  *   4. For each requested type:
  *      a. code:  embed with Jina, over-fetch topK*5 from col-768, filter by jina modelId
  *      b. text:  embed with Nomic ("search_query: " prefix), over-fetch topK*5 from col-768, filter by nomic modelId
- *      c. image: not supported (text-to-image search deferred to Phase 6)
+ *      c. image: embed with CLIP text encoder, over-fetch topK*5 from col-512, filter by clip modelId
  *   5. Apply --threshold and --dir filters per type
  *   6. Collapse adjacent chunks per type
  *   7. Sort by score desc, slice to topK per type
- *   8. Output grouped JSON { code: [...], text: [...] } or text with ## headers
+ *   8. Output grouped JSON { code: [...], text: [...], image: [...] } or text with ## headers
  *
  * col-768 holds BOTH code and text vectors; they are distinguished by modelId metadata.
  * Over-fetch topK*5 ensures enough candidates after modelId filtering.
  */
 
-import type { CollapsedResult } from '../../services/query-utils.js';
+import type { CollapsedResult, ImageResult } from '../../services/query-utils.js';
 
 export async function runQuery(
   text: string,
@@ -73,13 +73,7 @@ export async function runQuery(
     }
     const isStale = staleFileCount > 0;
 
-    // 3. Open only the text/code collection (query never needs col-512 for images)
-    const { openCollection } = await import('../../services/vector-db.js');
-    const col768 = openCollection(projectDir, 'col-768');
-
-    try {
-
-    // 4. Determine which types to search (auto-detect from manifest)
+    // 3. Determine which types to search (auto-detect from manifest)
     type QueryType = 'code' | 'text' | 'image';
     let typesToQuery: QueryType[];
 
@@ -98,38 +92,28 @@ export async function runQuery(
       typesToQuery = [];
       if (indexedTypes.has('code')) typesToQuery.push('code');
       if (indexedTypes.has('text')) typesToQuery.push('text');
-      // image queries from text not supported — skip even if images are indexed
+      if (indexedTypes.has('image')) typesToQuery.push('image');
     }
 
     // Early exit when manifest exists but has no queryable types
     if (typesToQuery.length === 0) {
       const { emitError } = await import('../errors.js');
-      // Distinguish "only images indexed" from "nothing indexed at all"
-      const hasOnlyImages = totalIndexed > 0;
       emitError(
-        hasOnlyImages
-          ? { code: 'IMAGES_ONLY', message: `Only image files are indexed (${totalIndexed} files). Text-to-image search is not yet supported`, suggestion: 'Index a directory that contains code or text files, or wait for image search support' }
-          : { code: 'NO_INDEX', message: 'No indexed content found', suggestion: 'Run `ez-search index .` first' },
+        { code: 'NO_INDEX', message: 'No indexed content found', suggestion: 'Run `ez-search index .` first' },
         options.format === 'text' ? 'text' : 'json'
       );
     }
 
-    // Handle unsupported image query
-    if (options.type === 'image') {
-      const { emitError } = await import('../errors.js');
-      emitError(
-        {
-          code: 'UNSUPPORTED_TYPE',
-          message: 'Image search requires image query input (not yet supported)',
-          suggestion: 'Omit --type image to search code and text',
-        },
-        options.format === 'text' ? 'text' : 'json'
-      );
-    }
+    // 4. Open vector collections as needed
+    const { openCollection } = await import('../../services/vector-db.js');
+    const col768 = openCollection(projectDir, 'col-768');
+    const col512 = typesToQuery.includes('image') ? openCollection(projectDir, 'col-512') : null;
+
+    try {
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    const { normalizeResults, filterAndCollapse } = await import('../../services/query-utils.js');
+    const { normalizeResults, filterAndCollapse, filterImageResults } = await import('../../services/query-utils.js');
 
     const hasPostFilters = options.dir !== undefined || threshold !== undefined;
     // Over-fetch for mixed col-768 + optional post-filters
@@ -141,6 +125,7 @@ export async function runQuery(
 
     let codeResults: CollapsedResult[] = [];
     let textResults: CollapsedResult[] = [];
+    let imageResults: ImageResult[] = [];
 
     if (typesToQuery.includes('code')) {
       // Code: Jina embedding, filter for jina modelId
@@ -189,11 +174,36 @@ export async function runQuery(
       }
     }
 
+    if (typesToQuery.includes('image') && col512) {
+      // Image: CLIP text embedding, query col-512, filter for clip modelId
+      let pipe: import('../../services/image-embedder.js').ClipTextPipeline | null = null;
+      try {
+        const { createClipTextPipeline } = await import('../../services/image-embedder.js');
+        pipe = await createClipTextPipeline();
+        const [queryEmbedding] = await pipe.embedText([text]);
+
+        let rawResults: Awaited<ReturnType<typeof col512.query>>;
+        try {
+          rawResults = col512.query(queryEmbedding, fetchCount);
+        } catch {
+          rawResults = [];
+        }
+
+        const normalized = normalizeResults(rawResults);
+        imageResults = filterImageResults(normalized, (id) => id.includes('clip'), { threshold, dir: options.dir, topK });
+      } catch (err) {
+        process.stderr.write(`[query] image pipeline error: ${err instanceof Error ? err.message : String(err)}\n`);
+      } finally {
+        if (pipe) await pipe.dispose();
+      }
+    }
+
     // ── Output ────────────────────────────────────────────────────────────────
 
     const hasCodeResults = codeResults.length > 0;
     const hasTextResults = textResults.length > 0;
-    const hasResults = hasCodeResults || hasTextResults;
+    const hasImageResults = imageResults.length > 0;
+    const hasResults = hasCodeResults || hasTextResults || hasImageResults;
 
     if (options.format === 'text') {
       if (autoIndexResult) {
@@ -227,6 +237,14 @@ export async function runQuery(
           for (const line of r.chunkText.split('\n')) {
             console.log(`    ${line}`);
           }
+          console.log();
+        }
+      }
+
+      if (hasImageResults) {
+        console.log('## Images\n');
+        for (const r of imageResults) {
+          console.log(`File: ${r.filePath} | Relevance: ${r.score}`);
           console.log();
         }
       }
@@ -268,6 +286,13 @@ export async function runQuery(
         }));
       }
 
+      if (hasImageResults) {
+        output['image'] = imageResults.map((r) => ({
+          file: r.filePath,
+          score: r.score,
+        }));
+      }
+
       if (!hasResults) {
         output['message'] = 'No results found';
       }
@@ -277,6 +302,7 @@ export async function runQuery(
 
     } finally {
       col768.close();
+      if (col512) col512.close();
     }
   } catch (err) {
     const { emitError } = await import('../errors.js');

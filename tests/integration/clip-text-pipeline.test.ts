@@ -94,7 +94,7 @@ describe('createClipTextPipeline', () => {
   });
 
   test('pipeline has correct modelId and dim', () => {
-    expect(pipeline.modelId).toBe('Xenova/clip-vit-base-patch32');
+    expect(pipeline.modelId).toBe('Xenova/clip-vit-base-patch16');
     expect(pipeline.dim).toBe(512);
   });
 
