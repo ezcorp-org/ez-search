@@ -20,19 +20,17 @@ mock.module('sharp', () => {
 });
 
 /**
- * Deterministic embedding from token IDs: hash them into a 512-dim vector.
- * Different token sequences → different embeddings.
+ * Deterministic UN-NORMALIZED embedding from token IDs.
+ * Deliberately not unit-length — the production l2Normalize() in
+ * image-embedder.ts must normalize it. If normalization is missing,
+ * the "embeddings are unit vectors" test will fail.
  */
 function fakeTextEmbedding(inputIds: number[]): Float32Array {
   const emb = new Float32Array(512);
   for (let i = 0; i < inputIds.length; i++) {
-    emb[(inputIds[i] * 7 + i * 13) % 512] += 1.0 + i * 0.1;
+    emb[(inputIds[i] * 7 + i * 13) % 512] += 5.0 + i * 2.0;
   }
-  // Normalize to unit length
-  let norm = 0;
-  for (let i = 0; i < 512; i++) norm += emb[i] * emb[i];
-  norm = Math.sqrt(norm);
-  if (norm > 0) for (let i = 0; i < 512; i++) emb[i] /= norm;
+  // NOT normalized — production code must handle this
   return emb;
 }
 
@@ -107,6 +105,19 @@ describe('createClipTextPipeline', () => {
     expect(embedding.length).toBe(512);
     expect(embedding.some(v => v !== 0)).toBe(true);
     expect(embedding.every(v => Number.isFinite(v))).toBe(true);
+  });
+
+  test('embeddings are L2-normalized to unit length', async () => {
+    const [embedding] = await pipeline.embedText(['a photo of a cat']);
+
+    // Compute L2 norm — should be ~1.0 if l2Normalize ran
+    let norm = 0;
+    for (let i = 0; i < embedding.length; i++) norm += embedding[i] * embedding[i];
+    norm = Math.sqrt(norm);
+
+    // The mock returns un-normalized vectors (norm >> 1), so if this passes
+    // it proves the production l2Normalize() is being applied.
+    expect(norm).toBeCloseTo(1.0, 4);
   });
 
   test('batch of 3 texts → 3 separate 512-dim embeddings', async () => {

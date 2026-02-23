@@ -106,10 +106,17 @@ mock.module('../../src/services/vector-db.js', () => ({
 }));
 
 /**
- * Mock text model returns the same embedding as makeFakeEmbedding(10) — this
- * overlaps with cat-photo.jpg's vector, ensuring the query returns results
- * with meaningful (high) scores.
+ * Un-normalized version of makeFakeEmbedding — same direction as seed=10
+ * (cat-photo.jpg) but with arbitrary magnitude. The production l2Normalize()
+ * in image-embedder.ts must normalize this before cosine distance is computed.
  */
+function makeUnNormalizedEmbedding(seed: number): Float32Array {
+  const emb = new Float32Array(512);
+  for (let i = 0; i < 512; i++) emb[i] = 0.05;  // larger background
+  emb[seed % 512] = 7.0;  // large spike, NOT unit length
+  return emb;
+}
+
 mock.module('@huggingface/transformers', () => ({
   env: { cacheDir: '', allowRemoteModels: false },
   // model-router.ts imports `pipeline` for code/text embeddings
@@ -132,12 +139,13 @@ mock.module('@huggingface/transformers', () => ({
   },
   CLIPTextModelWithProjection: {
     from_pretrained: async () => {
-      // All queries return the cat-photo embedding for predictable overlap
+      // Returns un-normalized embedding in same direction as cat-photo (seed=10).
+      // Production l2Normalize() must normalize before cosine distance works.
       return (inputs: { input_ids: { data: BigInt64Array; dims: number[] } }) => {
         const batchSize = inputs.input_ids.dims[0];
         const allData = new Float32Array(batchSize * 512);
         for (let b = 0; b < batchSize; b++) {
-          allData.set(makeFakeEmbedding(10), b * 512);
+          allData.set(makeUnNormalizedEmbedding(10), b * 512);
         }
         return { text_embeds: { data: allData } };
       };
