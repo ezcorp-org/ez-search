@@ -4,7 +4,7 @@
 	import Problem from '$lib/components/Problem.svelte';
 	import HowItWorks from '$lib/components/HowItWorks.svelte';
 	import Features from '$lib/components/Features.svelte';
-	import Terminal from '$lib/components/Terminal.svelte';
+	import Showcase from '$lib/components/Showcase.svelte';
 	import CTA from '$lib/components/CTA.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 </script>
@@ -50,7 +50,7 @@
 	<Problem />
 	<HowItWorks />
 	<Features />
-	<Terminal />
+	<Showcase />
 	<CTA />
 </main>
 <Footer />
