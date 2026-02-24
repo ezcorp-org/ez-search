@@ -14,6 +14,7 @@
 
 import { pipeline, env } from '@huggingface/transformers';
 import { resolveModelCachePath } from '../config/paths.js';
+import { createDownloadProgressCallback } from './download-progress.js';
 import type { ModelBackend } from '../types.js';
 
 // ── Model registry ────────────────────────────────────────────────────────────
@@ -98,7 +99,7 @@ export async function createEmbeddingPipeline(
   options: EmbeddingPipelineOptions = {}
 ): Promise<EmbeddingPipeline> {
   const model = MODEL_REGISTRY[modelType];
-  const progressCallback = options.progressCallback;
+  const cb = options.progressCallback ?? createDownloadProgressCallback(model.id);
 
   // Set cache dir BEFORE first pipeline() call — this is critical
   env.cacheDir = resolveModelCachePath();
@@ -112,7 +113,7 @@ export async function createEmbeddingPipeline(
     pipe = await pipeline('feature-extraction', model.id, {
       device: 'webgpu',
       dtype: 'fp32',
-      ...(progressCallback ? { progress_callback: progressCallback } : {}),
+      progress_callback: cb,
     });
     backend = 'webgpu';
     console.error(`[model-router] Using WebGPU for ${model.id}`);
@@ -124,7 +125,7 @@ export async function createEmbeddingPipeline(
     pipe = await pipeline('feature-extraction', model.id, {
       device: 'cpu',
       dtype: 'q8',
-      ...(progressCallback ? { progress_callback: progressCallback } : {}),
+      progress_callback: cb,
     });
     backend = 'cpu';
     console.error(`[model-router] Using CPU for ${model.id}`);

@@ -11,6 +11,7 @@
 
 import { SiglipVisionModel, SiglipTextModel, AutoProcessor, AutoTokenizer, RawImage, env } from '@huggingface/transformers';
 import { resolveModelCachePath } from '../config/paths.js';
+import { createDownloadProgressCallback } from './download-progress.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -75,11 +76,14 @@ export async function createImageEmbeddingPipeline(): Promise<ImageEmbeddingPipe
   env.cacheDir = resolveModelCachePath();
   env.allowRemoteModels = true;
 
+  const cb = createDownloadProgressCallback(SIGLIP_MODEL_ID);
+
   // Load processor and vision model in parallel for faster startup
   const [processor, visionModel] = await Promise.all([
-    AutoProcessor.from_pretrained(SIGLIP_MODEL_ID),
+    AutoProcessor.from_pretrained(SIGLIP_MODEL_ID, { progress_callback: cb }),
     SiglipVisionModel.from_pretrained(SIGLIP_MODEL_ID, {
       dtype: 'fp32',
+      progress_callback: cb,
     }),
   ]);
 
@@ -123,9 +127,11 @@ export async function createSiglipTextPipeline(): Promise<SiglipTextPipeline> {
   env.cacheDir = resolveModelCachePath();
   env.allowRemoteModels = true;
 
+  const cb = createDownloadProgressCallback(SIGLIP_MODEL_ID);
+
   const [tokenizer, textModel] = await Promise.all([
-    AutoTokenizer.from_pretrained(SIGLIP_MODEL_ID),
-    SiglipTextModel.from_pretrained(SIGLIP_MODEL_ID, { dtype: 'fp32' }),
+    AutoTokenizer.from_pretrained(SIGLIP_MODEL_ID, { progress_callback: cb }),
+    SiglipTextModel.from_pretrained(SIGLIP_MODEL_ID, { dtype: 'fp32', progress_callback: cb }),
   ]);
 
   console.error(`[image-embedder] Loaded SigLIP text model (fp32)`);
