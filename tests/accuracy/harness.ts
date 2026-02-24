@@ -14,7 +14,7 @@ import { computeQueryMetrics, aggregateMetrics, type QueryMetrics, type Aggregat
 import { loadTokenizer, chunkFile } from '../../src/services/chunker.js';
 import { chunkTextFile } from '../../src/services/text-chunker.js';
 import { createEmbeddingPipeline, type EmbeddingPipeline } from '../../src/services/model-router.js';
-import { createImageEmbeddingPipeline, createClipTextPipeline, type ImageEmbeddingPipeline, type ClipTextPipeline } from '../../src/services/image-embedder.js';
+import { createImageEmbeddingPipeline, createSiglipTextPipeline, type ImageEmbeddingPipeline, type SiglipTextPipeline } from '../../src/services/image-embedder.js';
 import { openProjectCollections, type ProjectCollections } from '../../src/services/vector-db.js';
 import { normalizeResults, filterAndCollapse, filterImageResults } from '../../src/services/query-utils.js';
 
@@ -30,7 +30,7 @@ interface Pipelines {
   codePipeline: EmbeddingPipeline;
   textPipeline: EmbeddingPipeline;
   imagePipeline: ImageEmbeddingPipeline;
-  clipTextPipeline: ClipTextPipeline;
+  siglipTextPipeline: SiglipTextPipeline;
   tokenizer: Awaited<ReturnType<typeof loadTokenizer>>;
 }
 
@@ -83,8 +83,7 @@ async function indexTextFiles(
     const chunks = chunkTextFile(content);
 
     for (const chunk of chunks) {
-      const prefixed = `search_document: ${chunk.text}`;
-      const [embedding] = await pipeline.embed([prefixed]);
+      const [embedding] = await pipeline.embed([chunk.text]);
       const id = sanitizeId(file, chunk.chunkIndex);
       collections.col768.insert(id, embedding, {
         filePath: file,
@@ -106,7 +105,7 @@ async function indexImageFiles(
     const buf = readFileSync(path.join(CORPUS_DIR, 'image', file));
     const embedding = await pipeline.embedImage(buf);
     const id = sanitizeId(file, 0);
-    collections.col512.insert(id, embedding, {
+    collections.col768.insert(id, embedding, {
       filePath: file,
       chunkIndex: 0,
       modelId: pipeline.modelId,
@@ -127,7 +126,8 @@ async function queryCode(
   const results: QueryMetrics[] = [];
 
   for (const q of queries) {
-    const [embedding] = await pipeline.embed([q.query]);
+    const prefixed = `Instruct: Given a search query, retrieve relevant code snippets\nQuery: ${q.query}`;
+    const [embedding] = await pipeline.embed([prefixed]);
     const raw = collections.col768.query(embedding, 15);
     const normalized = normalizeResults(raw);
     const collapsed = filterAndCollapse(
@@ -150,7 +150,7 @@ async function queryText(
   const results: QueryMetrics[] = [];
 
   for (const q of queries) {
-    const prefixed = `search_query: ${q.query}`;
+    const prefixed = `Instruct: Given a search query, retrieve relevant text passages\nQuery: ${q.query}`;
     const [embedding] = await pipeline.embed([prefixed]);
     const raw = collections.col768.query(embedding, 15);
     const normalized = normalizeResults(raw);
@@ -168,18 +168,18 @@ async function queryText(
 
 async function queryImages(
   collections: ProjectCollections,
-  clipText: ClipTextPipeline,
+  siglipText: SiglipTextPipeline,
 ): Promise<QueryMetrics[]> {
   const queries = queriesByType('image');
   const results: QueryMetrics[] = [];
 
   for (const q of queries) {
-    const [embedding] = await clipText.embedText([q.query]);
-    const raw = collections.col512.query(embedding, 10);
+    const [embedding] = await siglipText.embedText([q.query]);
+    const raw = collections.col768.query(embedding, 10);
     const normalized = normalizeResults(raw);
     const imageResults = filterImageResults(
       normalized,
-      (id) => id === clipText.modelId,
+      (id) => id === siglipText.modelId,
       { topK: 5 },
     );
     const retrieved = imageResults.map((r) => r.filePath);
@@ -193,15 +193,15 @@ async function queryImages(
 
 async function loadPipelines(): Promise<Pipelines> {
   console.error('[harness] Loading models...');
-  const [codePipeline, textPipeline, imagePipeline, clipTextPipeline, tokenizer] = await Promise.all([
+  const [codePipeline, textPipeline, imagePipeline, siglipTextPipeline, tokenizer] = await Promise.all([
     createEmbeddingPipeline('code'),
     createEmbeddingPipeline('text'),
     createImageEmbeddingPipeline(),
-    createClipTextPipeline(),
+    createSiglipTextPipeline(),
     loadTokenizer(),
   ]);
   console.error('[harness] All models loaded');
-  return { codePipeline, textPipeline, imagePipeline, clipTextPipeline, tokenizer };
+  return { codePipeline, textPipeline, imagePipeline, siglipTextPipeline, tokenizer };
 }
 
 async function disposePipelines(p: Pipelines): Promise<void> {
@@ -209,7 +209,7 @@ async function disposePipelines(p: Pipelines): Promise<void> {
     p.codePipeline.dispose(),
     p.textPipeline.dispose(),
     p.imagePipeline.dispose(),
-    p.clipTextPipeline.dispose(),
+    p.siglipTextPipeline.dispose(),
   ]);
 }
 
@@ -242,7 +242,6 @@ export async function runHarness(): Promise<HarnessResult> {
     // Optimize for query performance
     console.error('[harness] Optimizing collections...');
     collections.col768.optimize();
-    collections.col512.optimize();
 
     // Run queries and compute metrics
     console.error('[harness] Running code queries...');
@@ -252,7 +251,7 @@ export async function runHarness(): Promise<HarnessResult> {
     const textResults = await queryText(collections, pipelines.textPipeline);
 
     console.error('[harness] Running image queries...');
-    const imageResults = await queryImages(collections, pipelines.clipTextPipeline);
+    const imageResults = await queryImages(collections, pipelines.siglipTextPipeline);
 
     return {
       code: { aggregate: aggregateMetrics(codeResults), queries: codeResults },
@@ -263,7 +262,6 @@ export async function runHarness(): Promise<HarnessResult> {
     // Cleanup
     if (collections) {
       try { collections.col768.close(); } catch {}
-      try { collections.col512.close(); } catch {}
     }
     if (pipelines) {
       try { await disposePipelines(pipelines); } catch {}
