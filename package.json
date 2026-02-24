@@ -1,6 +1,6 @@
 {
   "name": "@ez-corp/ez-search",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "description": "Semantic codebase search with zero cloud dependencies",
   "type": "module",
   "main": "dist/cli/index.js",

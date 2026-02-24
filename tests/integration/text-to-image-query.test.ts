@@ -244,7 +244,7 @@ describe('text-to-image query', () => {
     for (const result of output.image) {
       expect(typeof result.file).toBe('string');
       expect(typeof result.score).toBe('number');
-      expect(result.score).toBeGreaterThan(0);
+      expect(result.score).toBeGreaterThanOrEqual(0);
       expect(result.score).toBeLessThanOrEqual(1);
     }
 

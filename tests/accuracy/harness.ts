@@ -16,7 +16,7 @@ import { chunkTextFile } from '../../src/services/text-chunker.js';
 import { createEmbeddingPipeline, type EmbeddingPipeline } from '../../src/services/model-router.js';
 import { createImageEmbeddingPipeline, createClipTextPipeline, type ImageEmbeddingPipeline, type ClipTextPipeline } from '../../src/services/image-embedder.js';
 import { openProjectCollections, type ProjectCollections } from '../../src/services/vector-db.js';
-import { normalizeResults, filterAndCollapse, filterImageResults } from '../../src/services/query-utils.js';
+import { normalizeResults, normalizeImageResults, filterAndCollapse, filterImageResults } from '../../src/services/query-utils.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -176,7 +176,7 @@ async function queryImages(
   for (const q of queries) {
     const [embedding] = await clipText.embedText([q.query]);
     const raw = collections.col512.query(embedding, 10);
-    const normalized = normalizeResults(raw);
+    const normalized = normalizeImageResults(raw);
     const imageResults = filterImageResults(
       normalized,
       () => true,

@@ -115,7 +115,7 @@ export async function runQuery(
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    const { normalizeResults, filterAndCollapse, filterImageResults } = await import('../../services/query-utils.js');
+    const { normalizeResults, normalizeImageResults, filterAndCollapse, filterImageResults } = await import('../../services/query-utils.js');
 
     const hasPostFilters = options.dir !== undefined || threshold !== undefined;
     // Over-fetch for optional post-filters (dir, threshold, chunk collapsing)
@@ -182,23 +182,41 @@ export async function runQuery(
     }
 
     if (needsImages && col512) {
-      // Image: CLIP text embedding, query col-512 (separate collection)
+      // Image: CLIP text embedding with prompt ensembling, query col-512
       let pipe: import('../../services/image-embedder.js').ClipTextPipeline | null = null;
       try {
         process.stderr.write(process.stderr.isTTY ? '\r\x1b[Kimage: loading model...' : 'image: loading model...\n');
         const { createClipTextPipeline } = await import('../../services/image-embedder.js');
         pipe = await createClipTextPipeline();
         if (process.stderr.isTTY) process.stderr.write('\r\x1b[K');
-        const [queryEmbedding] = await pipe.embedText([text]);
+
+        // Prompt ensembling: embed 4 variants and average for better retrieval
+        const templates = [
+          `a photo of ${text}`,
+          `an image of ${text}`,
+          `a picture of ${text}`,
+          text,
+        ];
+        const embeddings = await pipe.embedText(templates);
+        const averaged = new Float32Array(512);
+        for (const emb of embeddings) {
+          for (let i = 0; i < 512; i++) averaged[i] += emb[i];
+        }
+        for (let i = 0; i < 512; i++) averaged[i] /= embeddings.length;
+        // L2-normalize the averaged vector
+        let norm = 0;
+        for (let i = 0; i < 512; i++) norm += averaged[i] * averaged[i];
+        norm = Math.sqrt(norm);
+        if (norm > 0) for (let i = 0; i < 512; i++) averaged[i] /= norm;
 
         let rawResults: Awaited<ReturnType<typeof col512.query>>;
         try {
-          rawResults = col512.query(queryEmbedding, fetchCount);
+          rawResults = col512.query(averaged, fetchCount);
         } catch {
           rawResults = [];
         }
 
-        const normalized = normalizeResults(rawResults);
+        const normalized = normalizeImageResults(rawResults);
         imageResults = filterImageResults(normalized, () => true, { threshold, dir: options.dir, topK });
       } catch (err) {
         process.stderr.write(`[query] image pipeline error: ${err instanceof Error ? err.message : String(err)}\n`);
