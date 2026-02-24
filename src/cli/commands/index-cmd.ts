@@ -2,23 +2,23 @@
  * Index command — end-to-end pipeline: scan -> manifest check -> chunk -> embed -> store.
  *
  * Pipeline flow (per type):
- *   1. Resolve path and open vector collections
+ *   1. Resolve path and open vector collection
  *   2. Handle --clear (wipe storage + manifest)
  *   3. Load manifest (incremental cache)
  *   4. For each type in [code, text, image]:
  *      a. Scan files of that type
  *      b. Detect changed/new/deleted files against manifest
- *      c. Remove deleted files' chunks from the appropriate collection
+ *      c. Remove deleted files' chunks from col-768
  *      d. Chunk changed/new files
  *      e. Batch embed with the correct model
- *      f. Insert embeddings into the appropriate collection
- *   5. Optimize collections THEN save manifest (order matters)
+ *      f. Insert embeddings into col-768
+ *   5. Optimize collection THEN save manifest (order matters)
  *   6. Dispose pipelines and output results
  *
  * Model routing:
- *   code  -> jinaai/jina-embeddings-v2-base-code, col-768
- *   text  -> nomic-ai/nomic-embed-text-v1.5, col-768  (prefix: "search_document: ")
- *   image -> Xenova/clip-vit-base-patch16, col-512     (one vector per file)
+ *   code  -> onnx-community/Qwen3-Embedding-0.6B-ONNX, col-768
+ *   text  -> onnx-community/Qwen3-Embedding-0.6B-ONNX, col-768
+ *   image -> Xenova/siglip-base-patch16-224, col-768
  */
 
 import * as path from 'path';
@@ -262,15 +262,13 @@ async function runTextEmbeddingPipeline(opts: {
     const { createEmbeddingPipeline } = await import('../../services/model-router.js');
     pipe = await createEmbeddingPipeline(type);
 
-    // Nomic requires "search_document: " prefix on indexed documents
-    const prefix = type === 'text' ? 'search_document: ' : '';
     const totalBatches = Math.ceil(allPendingChunks.length / BATCH_SIZE);
 
     for (let batchStart = 0; batchStart < allPendingChunks.length; batchStart += BATCH_SIZE) {
       const batchNum = Math.floor(batchStart / BATCH_SIZE) + 1;
       progress.update(`${type}: embedding`, batchNum, totalBatches);
       const batch = allPendingChunks.slice(batchStart, batchStart + BATCH_SIZE);
-      const texts = batch.map((c) => prefix + c.text);
+      const texts = batch.map((c) => c.text);
       const embeddings = await pipe.embed(texts);
 
       for (let i = 0; i < batch.length; i++) {
@@ -281,7 +279,7 @@ async function runTextEmbeddingPipeline(opts: {
           modelId: pipe.modelId,
           lineStart: chunk.lineStart,
           lineEnd: chunk.lineEnd,
-          chunkText: chunk.text,  // store without prefix
+          chunkText: chunk.text,
         });
         chunksCreated++;
       }
@@ -335,17 +333,15 @@ export async function runIndex(
 
     // 2. Open vector collections
     const { openProjectCollections } = await import('../../services/vector-db.js');
-    let { col768, col512, storagePath } = openProjectCollections(absPath);
+    let { col768, storagePath } = openProjectCollections(absPath);
 
     // 3. Handle --clear
     // rmSync removes .ez-search/ entirely (including manifest.json inside it)
     if (options.clear) {
       col768.close();
-      col512.close();
       rmSync(storagePath, { recursive: true, force: true });
       const reopened = openProjectCollections(absPath);
       col768 = reopened.col768;
-      col512 = reopened.col512;
       storagePath = reopened.storagePath;
     }
 
@@ -371,8 +367,6 @@ export async function runIndex(
 
     // Per-type file counts for text output
     const typeFileCounts: Partial<Record<FileType, number>> = {};
-
-    let imageFilesProcessed = false;
 
     for (const fileType of typesToIndex) {
       // Scan files of this type
@@ -436,7 +430,7 @@ export async function runIndex(
           typeFileCounts[fileType] = (typeFileCounts[fileType] ?? 0) + result.filesIndexed;
         }
       } else if (fileType === 'image') {
-        // Image pipeline: one vector per file, goes into col-512
+        // Image pipeline: one vector per file, goes into col-768
         const { EXTENSION_MAP } = await import('../../types.js');
         const deletedPaths = Object.keys(manifest.files).filter((relPath) => {
           if (scannedSet.has(relPath)) return false;
@@ -447,7 +441,7 @@ export async function runIndex(
         for (const deletedPath of deletedPaths) {
           const entry = manifest.files[deletedPath];
           for (const chunk of entry.chunks) {
-            col512.remove(chunk.id);
+            col768.remove(chunk.id);
             totalChunksRemoved++;
           }
           delete manifest.files[deletedPath];
@@ -493,7 +487,7 @@ export async function runIndex(
             const embedding = await imagePipeline.embedImage(buf);
             const chunkId = makeChunkId(file.relativePath, 0);
 
-            col512.insert(chunkId, embedding, {
+            col768.insert(chunkId, embedding, {
               filePath: file.relativePath,
               chunkIndex: 0,
               modelId: imagePipeline.modelId,
@@ -513,7 +507,6 @@ export async function runIndex(
           }
 
           await imagePipeline.dispose();
-          imageFilesProcessed = true;
           typeFileCounts['image'] = (typeFileCounts['image'] ?? 0) + filesToProcess.length;
         }
       }
@@ -533,10 +526,6 @@ export async function runIndex(
     progress.update('optimizing index...');
     col768.optimize();
     col768.close();
-    if (imageFilesProcessed) {
-      col512.optimize();
-    }
-    col512.close();
     saveManifest(absPath, manifest);
     progress.done();
 
