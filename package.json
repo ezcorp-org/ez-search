@@ -20,7 +20,8 @@
     "start": "tsx src/cli/index.ts",
     "test": "bun test",
     "test:unit": "bun test tests/unit/",
-    "test:integration": "bun test tests/integration/"
+    "test:integration": "bun test tests/integration/",
+    "test:accuracy": "bun test tests/accuracy/"
   },
   "keywords": [
     "semantic-search",
