@@ -1,21 +1,20 @@
 /**
- * Query command — multi-collection grouped semantic search.
+ * Query command — single-collection grouped semantic search.
  *
  * Pipeline:
  *   1. Resolve project directory (cwd)
- *   2. Open vector collections (col-768 for code/text, col-512 for images)
+ *   2. Open vector collection (col-768 for all types)
  *   3. Load manifest for totalIndexed count
  *   4. For each requested type:
- *      a. code:  embed with Jina, over-fetch topK*5 from col-768, filter by jina modelId
- *      b. text:  embed with Nomic ("search_query: " prefix), over-fetch topK*5 from col-768, filter by nomic modelId
- *      c. image: embed with CLIP text encoder, over-fetch topK*5 from col-512, filter by clip modelId
+ *      a. code:  embed with Qwen3 (instruct prefix), query col-768, filter by Qwen3 modelId
+ *      b. text:  embed with Qwen3 (instruct prefix), query col-768, filter by Qwen3 modelId
+ *      c. image: embed with SigLIP text encoder, query col-768, filter by siglip modelId
  *   5. Apply --threshold and --dir filters per type
  *   6. Collapse adjacent chunks per type
  *   7. Sort by score desc, slice to topK per type
  *   8. Output grouped JSON { code: [...], text: [...], image: [...] } or text with ## headers
  *
- * col-768 holds BOTH code and text vectors; they are distinguished by modelId metadata.
- * Over-fetch topK*5 ensures enough candidates after modelId filtering.
+ * col-768 holds ALL vectors (code, text, image); they are distinguished by modelId metadata.
  */
 
 import type { CollapsedResult, ImageResult } from '../../services/query-utils.js';
@@ -81,7 +80,6 @@ export async function runQuery(
       typesToQuery = [options.type as QueryType];
     } else {
       // Pre-detect indexed types from manifest: only load models for types that have data.
-      // This avoids loading Jina when only text is indexed (or Nomic when only code is indexed).
       const { EXTENSION_MAP } = await import('../../types.js');
       const indexedTypes = new Set<string>();
       for (const filePath of Object.keys(manifest.files)) {
@@ -107,7 +105,6 @@ export async function runQuery(
     // 4. Open vector collections as needed
     const { openCollection } = await import('../../services/vector-db.js');
     const col768 = openCollection(projectDir, 'col-768');
-    const col512 = typesToQuery.includes('image') ? openCollection(projectDir, 'col-512') : null;
 
     try {
 
@@ -128,34 +125,11 @@ export async function runQuery(
     let imageResults: ImageResult[] = [];
 
     if (typesToQuery.includes('code')) {
-      // Code: Jina embedding, filter for jina modelId
+      // Code: Qwen3 embedding, filter for Qwen3 modelId
       let pipe: Awaited<ReturnType<typeof createEmbeddingPipeline>> | null = null;
       try {
         pipe = await createEmbeddingPipeline('code');
-        const [queryEmbedding] = await pipe.embed([text]);
-
-        let rawResults: Awaited<ReturnType<typeof col768.query>>;
-        try {
-          rawResults = col768.query(queryEmbedding, fetchCount);
-        } catch {
-          rawResults = [];
-        }
-
-        const normalized = normalizeResults(rawResults);
-        codeResults = filterAndCollapse(normalized, (id) => id.includes('jina') || id.startsWith('jinaai/'), { threshold, dir: options.dir, topK });
-      } catch (err) {
-        process.stderr.write(`[query] code pipeline error: ${err instanceof Error ? err.message : String(err)}\n`);
-      } finally {
-        if (pipe) await pipe.dispose();
-      }
-    }
-
-    if (typesToQuery.includes('text')) {
-      // Text: Nomic embedding with "search_query: " prefix, filter for nomic modelId
-      let pipe: Awaited<ReturnType<typeof createEmbeddingPipeline>> | null = null;
-      try {
-        pipe = await createEmbeddingPipeline('text');
-        const prefixedQuery = `search_query: ${text}`;
+        const prefixedQuery = `Instruct: Given a search query, retrieve relevant code snippets\nQuery: ${text}`;
         const [queryEmbedding] = await pipe.embed([prefixedQuery]);
 
         let rawResults: Awaited<ReturnType<typeof col768.query>>;
@@ -166,7 +140,31 @@ export async function runQuery(
         }
 
         const normalized = normalizeResults(rawResults);
-        textResults = filterAndCollapse(normalized, (id) => id.includes('nomic'), { threshold, dir: options.dir, topK });
+        codeResults = filterAndCollapse(normalized, (id) => id.includes('Qwen3-Embedding'), { threshold, dir: options.dir, topK });
+      } catch (err) {
+        process.stderr.write(`[query] code pipeline error: ${err instanceof Error ? err.message : String(err)}\n`);
+      } finally {
+        if (pipe) await pipe.dispose();
+      }
+    }
+
+    if (typesToQuery.includes('text')) {
+      // Text: Qwen3 embedding with instruct prefix, filter for Qwen3 modelId
+      let pipe: Awaited<ReturnType<typeof createEmbeddingPipeline>> | null = null;
+      try {
+        pipe = await createEmbeddingPipeline('text');
+        const prefixedQuery = `Instruct: Given a search query, retrieve relevant text passages\nQuery: ${text}`;
+        const [queryEmbedding] = await pipe.embed([prefixedQuery]);
+
+        let rawResults: Awaited<ReturnType<typeof col768.query>>;
+        try {
+          rawResults = col768.query(queryEmbedding, fetchCount);
+        } catch {
+          rawResults = [];
+        }
+
+        const normalized = normalizeResults(rawResults);
+        textResults = filterAndCollapse(normalized, (id) => id.includes('Qwen3-Embedding'), { threshold, dir: options.dir, topK });
       } catch (err) {
         process.stderr.write(`[query] text pipeline error: ${err instanceof Error ? err.message : String(err)}\n`);
       } finally {
@@ -174,23 +172,23 @@ export async function runQuery(
       }
     }
 
-    if (typesToQuery.includes('image') && col512) {
-      // Image: CLIP text embedding, query col-512, filter for clip modelId
-      let pipe: import('../../services/image-embedder.js').ClipTextPipeline | null = null;
+    if (typesToQuery.includes('image')) {
+      // Image: SigLIP text embedding, query col-768, filter for siglip modelId
+      let pipe: import('../../services/image-embedder.js').SiglipTextPipeline | null = null;
       try {
-        const { createClipTextPipeline } = await import('../../services/image-embedder.js');
-        pipe = await createClipTextPipeline();
+        const { createSiglipTextPipeline } = await import('../../services/image-embedder.js');
+        pipe = await createSiglipTextPipeline();
         const [queryEmbedding] = await pipe.embedText([text]);
 
-        let rawResults: Awaited<ReturnType<typeof col512.query>>;
+        let rawResults: Awaited<ReturnType<typeof col768.query>>;
         try {
-          rawResults = col512.query(queryEmbedding, fetchCount);
+          rawResults = col768.query(queryEmbedding, fetchCount);
         } catch {
           rawResults = [];
         }
 
         const normalized = normalizeResults(rawResults);
-        imageResults = filterImageResults(normalized, (id) => id.includes('clip'), { threshold, dir: options.dir, topK });
+        imageResults = filterImageResults(normalized, (id) => id.includes('siglip'), { threshold, dir: options.dir, topK });
       } catch (err) {
         process.stderr.write(`[query] image pipeline error: ${err instanceof Error ? err.message : String(err)}\n`);
       } finally {
@@ -302,7 +300,6 @@ export async function runQuery(
 
     } finally {
       col768.close();
-      if (col512) col512.close();
     }
   } catch (err) {
     const { emitError } = await import('../errors.js');
