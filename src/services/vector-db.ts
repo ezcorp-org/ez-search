@@ -2,9 +2,8 @@
  * Vector DB service — wraps @zvec/zvec behind a clean interface.
  *
  * Uses createRequire because @zvec/zvec is a CommonJS package in an ESM project.
- * Two collections per project:
- *   col-768 — for code/text embeddings (jina, nomic, 768-dim)
- *   col-512 — for image embeddings (CLIP, 512-dim)
+ * Single collection per project:
+ *   col-768 — for all embeddings (code, text, image — all 768-dim)
  *
  * Storage lives at <project>/.ez-search/ (project-scoped).
  */
@@ -32,7 +31,7 @@ ZVecInitialize({ logLevel: ZVecLogLevel.WARN });
 
 // ── Schema versioning ─────────────────────────────────────────────────────────
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -200,43 +199,26 @@ function createCollection(storageDir: string, name: string, dim: number): Vector
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export interface ProjectCollections {
-  /** 768-dim collection for code and text embeddings (jina, nomic) */
+  /** 768-dim collection for all embeddings (code, text, image) */
   col768: VectorCollection;
-  /** 512-dim collection for image embeddings (CLIP) */
-  col512: VectorCollection;
   /** Resolved storage path on disk */
   storagePath: string;
 }
 
-/**
- * Open both vector collections for a project.
- *
- * Storage layout:
- *   <projectDir>/.ez-search/col-768/  (768-dim, code/text)
- *   <projectDir>/.ez-search/col-512/  (512-dim, images)
- *
- * Creates the storage directory if it does not exist.
- */
 export function openProjectCollections(projectDir: string): ProjectCollections {
   const storageDir = resolveProjectStoragePath(projectDir);
   mkdirSync(storageDir, { recursive: true });
   ensureSchemaVersion(storageDir);
 
   const col768 = createCollection(storageDir, 'col-768', 768);
-  const col512 = createCollection(storageDir, 'col-512', 512);
 
-  return { col768, col512, storagePath: storageDir };
+  return { col768, storagePath: storageDir };
 }
 
-/**
- * Open a single vector collection by name.
- * Use this when you only need one collection (e.g. query only needs col-768).
- */
-export function openCollection(projectDir: string, name: 'col-768' | 'col-512'): VectorCollection {
+export function openCollection(projectDir: string, name: 'col-768'): VectorCollection {
   const storageDir = resolveProjectStoragePath(projectDir);
   mkdirSync(storageDir, { recursive: true });
   ensureSchemaVersion(storageDir);
 
-  const dim = name === 'col-768' ? 768 : 512;
-  return createCollection(storageDir, name, dim);
+  return createCollection(storageDir, name, 768);
 }
