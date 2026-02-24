@@ -47,8 +47,10 @@ export async function runQuery(
       }
 
       // Auto-index the project
+      process.stderr.write(process.stderr.isTTY ? '\r\x1b[Kauto-indexing project...' : 'auto-indexing project...\n');
       const { runIndex } = await import('./index-cmd.js');
-      autoIndexResult = await runIndex('.', { ignore: true, quiet: true });
+      autoIndexResult = await runIndex('.', { ignore: true });
+      if (process.stderr.isTTY) process.stderr.write('\r\x1b[K');
 
       // Reload manifest after indexing
       manifest = loadManifest(projectDir);
@@ -128,7 +130,7 @@ export async function runQuery(
       // Code: Qwen3 embedding, filter for Qwen3 modelId
       let pipe: Awaited<ReturnType<typeof createEmbeddingPipeline>> | null = null;
       try {
-        if (process.stderr.isTTY) process.stderr.write('\r\x1b[Kcode: loading model...');
+        process.stderr.write(process.stderr.isTTY ? '\r\x1b[Kcode: loading model...' : 'code: loading model...\n');
         pipe = await createEmbeddingPipeline('code');
         if (process.stderr.isTTY) process.stderr.write('\r\x1b[K');
         const prefixedQuery = `Instruct: Given a search query, retrieve relevant code snippets\nQuery: ${text}`;
@@ -154,7 +156,7 @@ export async function runQuery(
       // Text: Qwen3 embedding with instruct prefix, filter for Qwen3 modelId
       let pipe: Awaited<ReturnType<typeof createEmbeddingPipeline>> | null = null;
       try {
-        if (process.stderr.isTTY) process.stderr.write('\r\x1b[Ktext: loading model...');
+        process.stderr.write(process.stderr.isTTY ? '\r\x1b[Ktext: loading model...' : 'text: loading model...\n');
         pipe = await createEmbeddingPipeline('text');
         if (process.stderr.isTTY) process.stderr.write('\r\x1b[K');
         const prefixedQuery = `Instruct: Given a search query, retrieve relevant text passages\nQuery: ${text}`;
@@ -180,7 +182,7 @@ export async function runQuery(
       // Image: SigLIP text embedding, query col-768, filter for siglip modelId
       let pipe: import('../../services/image-embedder.js').SiglipTextPipeline | null = null;
       try {
-        if (process.stderr.isTTY) process.stderr.write('\r\x1b[Kimage: loading model...');
+        process.stderr.write(process.stderr.isTTY ? '\r\x1b[Kimage: loading model...' : 'image: loading model...\n');
         const { createSiglipTextPipeline } = await import('../../services/image-embedder.js');
         pipe = await createSiglipTextPipeline();
         if (process.stderr.isTTY) process.stderr.write('\r\x1b[K');
