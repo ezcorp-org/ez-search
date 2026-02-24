@@ -20,8 +20,9 @@
 	aria-label="Main navigation"
 >
 	<div class="mx-auto max-w-[1200px] px-6 py-4 flex items-center justify-between">
-		<a href="/" class="text-xl font-bold">
-			<span class="text-ez-yellow">ez</span><span class="text-light">-search</span>
+		<a href="/" class="flex items-center gap-2 text-xl font-bold">
+			<img src="/favicon.svg" alt="" width="28" height="28" class="shrink-0" />
+			<span><span class="text-ez-yellow">ez</span><span class="text-light">-search</span></span>
 		</a>
 
 		<!-- Desktop nav -->
