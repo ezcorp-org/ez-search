@@ -2,7 +2,9 @@ node_modules/
 dist/
 .planning/intel/
 .ez-search/
+.playwright-mcp/
 spike/
+package-lock.json
 *.log
 .DS_Store
 .env
