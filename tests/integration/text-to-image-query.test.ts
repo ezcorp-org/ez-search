@@ -30,16 +30,16 @@ const IMAGE_FILES = [
 ];
 
 /**
- * Generate a deterministic 512-dim unit vector pointing mostly in dimension `seed`.
+ * Generate a deterministic 768-dim unit vector pointing mostly in dimension `seed`.
  */
 function makeFakeEmbedding(seed: number): Float32Array {
-  const emb = new Float32Array(512);
-  for (let i = 0; i < 512; i++) emb[i] = 0.01;
-  emb[seed % 512] = 1.0;
+  const emb = new Float32Array(768);
+  for (let i = 0; i < 768; i++) emb[i] = 0.01;
+  emb[seed % 768] = 1.0;
   let norm = 0;
-  for (let i = 0; i < 512; i++) norm += emb[i] * emb[i];
+  for (let i = 0; i < 768; i++) norm += emb[i] * emb[i];
   norm = Math.sqrt(norm);
-  for (let i = 0; i < 512; i++) emb[i] /= norm;
+  for (let i = 0; i < 768; i++) emb[i] /= norm;
   return emb;
 }
 
@@ -97,10 +97,9 @@ mock.module('@zvec/zvec', () => ({
 
 // Mock vector-db to use our in-memory store
 mock.module('../../src/services/vector-db.js', () => ({
-  openCollection: (_projectDir: string, name: string) => getMockCollection(name),
+  openCollection: (_projectDir: string, _name: string) => getMockCollection('col-768'),
   openProjectCollections: (projectDir: string) => ({
     col768: getMockCollection('col-768'),
-    col512: getMockCollection('col-512'),
     storagePath: path.join(projectDir, '.ez-search'),
   }),
 }));
@@ -111,9 +110,9 @@ mock.module('../../src/services/vector-db.js', () => ({
  * in image-embedder.ts must normalize this before cosine distance is computed.
  */
 function makeUnNormalizedEmbedding(seed: number): Float32Array {
-  const emb = new Float32Array(512);
-  for (let i = 0; i < 512; i++) emb[i] = 0.05;  // larger background
-  emb[seed % 512] = 7.0;  // large spike, NOT unit length
+  const emb = new Float32Array(768);
+  for (let i = 0; i < 768; i++) emb[i] = 0.05;  // larger background
+  emb[seed % 768] = 7.0;  // large spike, NOT unit length
   return emb;
 }
 
@@ -137,21 +136,21 @@ mock.module('@huggingface/transformers', () => ({
       return tokenize;
     },
   },
-  CLIPTextModelWithProjection: {
+  SiglipTextModel: {
     from_pretrained: async () => {
       // Returns un-normalized embedding in same direction as cat-photo (seed=10).
       // Production l2Normalize() must normalize before cosine distance works.
       return (inputs: { input_ids: { data: BigInt64Array; dims: number[] } }) => {
         const batchSize = inputs.input_ids.dims[0];
-        const allData = new Float32Array(batchSize * 512);
+        const allData = new Float32Array(batchSize * 768);
         for (let b = 0; b < batchSize; b++) {
-          allData.set(makeUnNormalizedEmbedding(10), b * 512);
+          allData.set(makeUnNormalizedEmbedding(10), b * 768);
         }
-        return { text_embeds: { data: allData } };
+        return { pooler_output: { data: allData } };
       };
     },
   },
-  CLIPVisionModelWithProjection: { from_pretrained: async () => ({}) },
+  SiglipVisionModel: { from_pretrained: async () => ({}) },
   AutoProcessor: { from_pretrained: async () => ({}) },
   RawImage: { fromBlob: async () => ({}) },
 }));
@@ -192,22 +191,22 @@ describe('text-to-image query', () => {
     fs.mkdirSync(storagePath, { recursive: true });
 
     // Schema version
-    fs.writeFileSync(path.join(storagePath, 'schema-version.json'), JSON.stringify({ version: 2 }));
+    fs.writeFileSync(path.join(storagePath, 'schema-version.json'), JSON.stringify({ version: 3 }));
 
     // Dummy image files (scanner needs them to detect image type)
     for (const img of IMAGE_FILES) {
       fs.writeFileSync(path.join(tmpDir, img.path), 'fake-data');
     }
 
-    // Seed mock col-512 with fake image embeddings
+    // Seed mock col-768 with fake image embeddings
     const { makeChunkId, saveManifest, MANIFEST_VERSION } = await import('../../src/services/manifest-cache.js');
 
-    const col512 = getMockCollection('col-512');
+    const col768 = getMockCollection('col-768');
     for (const img of IMAGE_FILES) {
-      col512.insert(makeChunkId(img.path, 0), makeFakeEmbedding(img.seed), {
+      col768.insert(makeChunkId(img.path, 0), makeFakeEmbedding(img.seed), {
         filePath: img.path,
         chunkIndex: 0,
-        modelId: 'Xenova/clip-vit-base-patch16',
+        modelId: 'Xenova/siglip-base-patch16-224',
         lineStart: 0,
         lineEnd: 0,
         chunkText: '',
