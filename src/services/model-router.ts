@@ -6,10 +6,10 @@
  *
  * Model cache is stored in ~/.ez-search/models/ (not the default HuggingFace cache).
  *
- * NOTE: The nomic text model requires task prefixes on inputs — callers are responsible:
- *   - Documents: prefix with "search_document: "
- *   - Queries:   prefix with "search_query: "
- * The pipeline itself does NOT add prefixes automatically.
+ * Both code and text use Qwen3-Embedding-0.6B. Output is truncated from 1024 to 768 dims
+ * via Matryoshka Representation Learning, then L2-normalized.
+ *
+ * Query prefixing (Instruct/Query format) is the caller's responsibility.
  */
 
 import { pipeline, env } from '@huggingface/transformers';
@@ -20,22 +20,14 @@ import type { ModelBackend } from '../types.js';
 
 const MODEL_REGISTRY = {
   code: {
-    id: 'jinaai/jina-embeddings-v2-base-code',
+    id: 'onnx-community/Qwen3-Embedding-0.6B-ONNX',
+    nativeDim: 1024,
     dim: 768,
   },
   text: {
-    id: 'nomic-ai/nomic-embed-text-v1.5',
+    id: 'onnx-community/Qwen3-Embedding-0.6B-ONNX',
+    nativeDim: 1024,
     dim: 768,
-    /**
-     * Nomic requires task prefixes on all inputs:
-     *   document: "search_document: <text>"
-     *   query:    "search_query: <text>"
-     * The embed() method does NOT add these — callers must prefix their strings.
-     */
-    taskPrefix: {
-      document: 'search_document: ',
-      query: 'search_query: ',
-    },
   },
 } as const;
 
@@ -81,6 +73,14 @@ function extractEmbedding(output: unknown): Float32Array {
   throw new Error(`Unexpected embedding output shape: ${JSON.stringify(output)}`);
 }
 
+function l2Normalize(vec: Float32Array): Float32Array {
+  let norm = 0;
+  for (let i = 0; i < vec.length; i++) norm += vec[i] * vec[i];
+  norm = Math.sqrt(norm);
+  if (norm > 0) for (let i = 0; i < vec.length; i++) vec[i] /= norm;
+  return vec;
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -91,8 +91,7 @@ function extractEmbedding(output: unknown): Float32Array {
  *
  * Model weights are cached in ~/.ez-search/models/ (set before first pipeline() call).
  *
- * @param modelType - 'code' for jinaai/jina-embeddings-v2-base-code (768-dim)
- *                    'text' for nomic-ai/nomic-embed-text-v1.5 (768-dim, prefixes required)
+ * @param modelType - 'code' or 'text', both backed by Qwen3-Embedding-0.6B (768-dim after truncation)
  */
 export async function createEmbeddingPipeline(
   modelType: ModelType,
@@ -140,7 +139,11 @@ export async function createEmbeddingPipeline(
       const outputs = await Promise.all(
         texts.map((text) => pipe(text, { pooling: 'mean', normalize: true }))
       );
-      return outputs.map(extractEmbedding);
+      return outputs.map((output) => {
+        const raw = extractEmbedding(output);
+        const truncated = new Float32Array(raw.buffer, raw.byteOffset, model.dim);
+        return l2Normalize(new Float32Array(truncated));
+      });
     },
 
     async dispose(): Promise<void> {
