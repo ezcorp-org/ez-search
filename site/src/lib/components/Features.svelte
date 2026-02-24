@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	let visible = $state(false);
 	let section: HTMLElement;
 
 	onMount(() => {
+		section.classList.add('is-hidden');
 		const observer = new IntersectionObserver(
-			([entry]) => { if (entry.isIntersecting) visible = true; },
+			([entry]) => { if (entry.isIntersecting) section.classList.remove('is-hidden'); },
 			{ threshold: 0.1 }
 		);
 		observer.observe(section);
@@ -72,7 +72,7 @@
 <section
 	id="features"
 	bind:this={section}
-	class="py-24 md:py-32 px-6 transition-all duration-700 {visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}"
+	class="fade-section py-24 md:py-32 px-6"
 	aria-label="Features"
 >
 	<div class="mx-auto max-w-[1200px]">
@@ -82,12 +82,12 @@
 
 		<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
 			{#each features as feature}
-				<div class="group bg-card border border-card-border rounded-xl p-6 hover:border-muted/50 transition-all duration-300">
+				<div class="group bg-card border border-card-border rounded-xl p-6 hover:border-muted/40 hover:shadow-[0_0_20px_rgba(255,255,255,0.03)] transition-all duration-300">
 					<div class="mb-4 {feature.accent}">
 						{@render icon(feature.icon, feature.accent)}
 					</div>
 					<h3 class="text-lg font-semibold mb-2">{feature.title}</h3>
-					<p class="text-muted text-sm leading-relaxed">{feature.description}</p>
+					<p class="text-body text-sm leading-relaxed">{feature.description}</p>
 				</div>
 			{/each}
 		</div>

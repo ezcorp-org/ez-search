@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	let visible = $state(false);
 	let section: HTMLElement;
 
 	onMount(() => {
+		section.classList.add('is-hidden');
 		const observer = new IntersectionObserver(
-			([entry]) => { if (entry.isIntersecting) visible = true; },
+			([entry]) => { if (entry.isIntersecting) section.classList.remove('is-hidden'); },
 			{ threshold: 0.2 }
 		);
 		observer.observe(section);
@@ -16,7 +16,7 @@
 
 <section
 	bind:this={section}
-	class="py-24 md:py-32 px-6 transition-all duration-700 {visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}"
+	class="fade-section py-24 md:py-32 px-6"
 	aria-label="The problem ez-search solves"
 >
 	<div class="mx-auto max-w-[1200px]">
@@ -27,7 +27,7 @@
 		<div class="grid md:grid-cols-2 gap-8 md:gap-12">
 			<div class="bg-card border border-card-border rounded-xl p-8">
 				<div class="text-sm font-semibold text-muted uppercase tracking-wider mb-4">The problem</div>
-				<p class="text-light/80 leading-relaxed">
+				<p class="text-body leading-relaxed">
 					You search for "authentication logic" but grep only finds literal matches.
 					You know the code exists, but you can't describe it in grep syntax.
 					Your AI assistant can't find relevant context either.
@@ -36,7 +36,7 @@
 
 			<div class="bg-card border border-ez-blue/20 rounded-xl p-8">
 				<div class="text-sm font-semibold text-ez-blue uppercase tracking-wider mb-4">The solution</div>
-				<p class="text-light/80 leading-relaxed">
+				<p class="text-body leading-relaxed">
 					ez-search understands meaning, not just text. Ask "how are users authenticated"
 					and find the auth middleware, the JWT validation, the session handler &mdash;
 					even if none contain the word "authentication."

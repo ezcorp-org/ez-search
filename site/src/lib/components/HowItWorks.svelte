@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	let visible = $state(false);
 	let section: HTMLElement;
 
 	onMount(() => {
+		section.classList.add('is-hidden');
 		const observer = new IntersectionObserver(
-			([entry]) => { if (entry.isIntersecting) visible = true; },
+			([entry]) => { if (entry.isIntersecting) section.classList.remove('is-hidden'); },
 			{ threshold: 0.2 }
 		);
 		observer.observe(section);
@@ -38,7 +38,7 @@
 <section
 	id="how-it-works"
 	bind:this={section}
-	class="py-24 md:py-32 px-6 transition-all duration-700 {visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}"
+	class="fade-section py-24 md:py-32 px-6"
 	aria-label="How ez-search works"
 >
 	<div class="mx-auto max-w-[1200px]">
@@ -56,7 +56,7 @@
 					<code class="inline-block bg-card border border-card-border rounded-lg px-4 py-2 font-mono text-sm text-ez-green mb-4">
 						{step.command}
 					</code>
-					<p class="text-muted text-sm leading-relaxed">{step.description}</p>
+					<p class="text-body text-sm leading-relaxed max-w-xs mx-auto">{step.description}</p>
 				</div>
 			{/each}
 		</div>

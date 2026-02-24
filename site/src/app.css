@@ -4,6 +4,7 @@
 	--color-dark: #0A0A0A;
 	--color-light: #FAFAFA;
 	--color-muted: #A1A1AA;
+	--color-body: #D1D5DB;
 	--color-ez-yellow: #F4C430;
 	--color-ez-blue: #0066FF;
 	--color-ez-green: #00CC66;
@@ -16,4 +17,22 @@
 
 html {
 	scroll-behavior: smooth;
+}
+
+/* Fade-in animation: visible by default, animated only when JS loads */
+.fade-section {
+	opacity: 1;
+	transform: translateY(0);
+	transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+.fade-section.is-hidden {
+	opacity: 0;
+	transform: translateY(1rem);
+}
+
+/* Focus-visible ring for interactive elements */
+a:focus-visible, button:focus-visible {
+	outline: 2px solid var(--color-ez-yellow);
+	outline-offset: 2px;
+	border-radius: 4px;
 }
