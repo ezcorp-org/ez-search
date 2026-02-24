@@ -1,9 +1,9 @@
 /**
- * Integration tests for createSiglipTextPipeline.
+ * Integration tests for createClipTextPipeline.
  *
  * Mocks native deps (sharp, onnxruntime-node, @huggingface/transformers)
  * so that the pipeline runs without real model weights. The mock text model
- * returns deterministic 768-dim embeddings derived from input token IDs.
+ * returns deterministic 512-dim embeddings derived from input token IDs.
  */
 
 import { describe, test, expect, mock, beforeAll, afterAll } from 'bun:test';
@@ -26,9 +26,9 @@ mock.module('sharp', () => {
  * the "embeddings are unit vectors" test will fail.
  */
 function fakeTextEmbedding(inputIds: number[]): Float32Array {
-  const emb = new Float32Array(768);
+  const emb = new Float32Array(512);
   for (let i = 0; i < inputIds.length; i++) {
-    emb[(inputIds[i] * 7 + i * 13) % 768] += 5.0 + i * 2.0;
+    emb[(inputIds[i] * 7 + i * 13) % 512] += 5.0 + i * 2.0;
   }
   // NOT normalized — production code must handle this
   return emb;
@@ -50,43 +50,43 @@ function fakeTokenize(texts: string | string[], _opts?: unknown) {
 mock.module('@huggingface/transformers', () => ({
   env: { cacheDir: '', allowRemoteModels: false },
   pipeline: async () => {
-    const fn = async () => ({ data: new Float32Array(768) });
+    const fn = async () => ({ data: new Float32Array(512) });
     fn.dispose = async () => {};
     return fn;
   },
   AutoTokenizer: {
     from_pretrained: async () => Object.assign(fakeTokenize, { from_pretrained: async () => fakeTokenize }),
   },
-  SiglipTextModel: {
+  CLIPTextModelWithProjection: {
     from_pretrained: async () => {
-      // Callable model: takes tokenized input, returns pooler_output
+      // Callable model: takes tokenized input, returns text_embeds
       return (inputs: { input_ids: { data: BigInt64Array; dims: number[] } }) => {
         const batchSize = inputs.input_ids.dims[0];
         const seqLen = inputs.input_ids.dims[1];
-        const allData = new Float32Array(batchSize * 768);
+        const allData = new Float32Array(batchSize * 512);
         for (let b = 0; b < batchSize; b++) {
           const ids: number[] = [];
           for (let s = 0; s < seqLen; s++) ids.push(Number(inputs.input_ids.data[b * seqLen + s]));
           const emb = fakeTextEmbedding(ids);
-          allData.set(emb, b * 768);
+          allData.set(emb, b * 512);
         }
-        return { pooler_output: { data: allData } };
+        return { text_embeds: { data: allData } };
       };
     },
   },
-  SiglipVisionModel: { from_pretrained: async () => ({}) },
+  CLIPVisionModelWithProjection: { from_pretrained: async () => ({}) },
   AutoProcessor: { from_pretrained: async () => ({}) },
   RawImage: { fromBlob: async () => ({}) },
 }));
 
-import type { SiglipTextPipeline } from '../../src/services/image-embedder.js';
+import type { ClipTextPipeline } from '../../src/services/image-embedder.js';
 
-describe('createSiglipTextPipeline', () => {
-  let pipeline: SiglipTextPipeline;
+describe('createClipTextPipeline', () => {
+  let pipeline: ClipTextPipeline;
 
   beforeAll(async () => {
-    const { createSiglipTextPipeline } = await import('../../src/services/image-embedder.js');
-    pipeline = await createSiglipTextPipeline();
+    const { createClipTextPipeline } = await import('../../src/services/image-embedder.js');
+    pipeline = await createClipTextPipeline();
   });
 
   afterAll(async () => {
@@ -94,15 +94,15 @@ describe('createSiglipTextPipeline', () => {
   });
 
   test('pipeline has correct modelId and dim', () => {
-    expect(pipeline.modelId).toBe('Xenova/siglip-base-patch16-224');
-    expect(pipeline.dim).toBe(768);
+    expect(pipeline.modelId).toBe('Xenova/clip-vit-base-patch16');
+    expect(pipeline.dim).toBe(512);
   });
 
-  test('single text → 768-dim Float32Array with finite non-zero values', async () => {
+  test('single text → 512-dim Float32Array with finite non-zero values', async () => {
     const [embedding] = await pipeline.embedText(['a photo of a cat']);
 
     expect(embedding).toBeInstanceOf(Float32Array);
-    expect(embedding.length).toBe(768);
+    expect(embedding.length).toBe(512);
     expect(embedding.some(v => v !== 0)).toBe(true);
     expect(embedding.every(v => Number.isFinite(v))).toBe(true);
   });
@@ -120,13 +120,13 @@ describe('createSiglipTextPipeline', () => {
     expect(norm).toBeCloseTo(1.0, 4);
   });
 
-  test('batch of 3 texts → 3 separate 768-dim embeddings', async () => {
+  test('batch of 3 texts → 3 separate 512-dim embeddings', async () => {
     const embeddings = await pipeline.embedText(['cat', 'dog', 'sunset over ocean']);
 
     expect(embeddings).toHaveLength(3);
     for (const emb of embeddings) {
       expect(emb).toBeInstanceOf(Float32Array);
-      expect(emb.length).toBe(768);
+      expect(emb.length).toBe(512);
     }
   });
 
@@ -135,7 +135,7 @@ describe('createSiglipTextPipeline', () => {
 
     // At least one element should differ
     let allSame = true;
-    for (let i = 0; i < 768; i++) {
+    for (let i = 0; i < 512; i++) {
       if (catEmb[i] !== carEmb[i]) { allSame = false; break; }
     }
     expect(allSame).toBe(false);

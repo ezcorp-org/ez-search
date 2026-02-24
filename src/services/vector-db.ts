@@ -2,8 +2,9 @@
  * Vector DB service — wraps @zvec/zvec behind a clean interface.
  *
  * Uses createRequire because @zvec/zvec is a CommonJS package in an ESM project.
- * Single collection per project:
- *   col-768 — for all embeddings (code, text, image — all 768-dim)
+ * Two collections per project:
+ *   col-768 — Qwen3 code+text embeddings (768-dim)
+ *   col-512 — CLIP image embeddings (512-dim)
  *
  * Storage lives at <project>/.ez-search/ (project-scoped).
  */
@@ -31,7 +32,7 @@ ZVecInitialize({ logLevel: ZVecLogLevel.WARN });
 
 // ── Schema versioning ─────────────────────────────────────────────────────────
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -52,7 +53,7 @@ export interface QueryResult {
  */
 export interface VectorCollection {
   insert(id: string, embedding: Float32Array, metadata: VectorMetadata): void;
-  query(embedding: Float32Array, topK: number): QueryResult[];
+  query(embedding: Float32Array, topK: number, filter?: string): QueryResult[];
   remove(id: string): void;
   optimize(): void;
   close(): void;
@@ -157,12 +158,13 @@ function createCollection(storageDir: string, name: string, dim: number): Vector
       }
     },
 
-    query(embedding: Float32Array, topK: number): QueryResult[] {
+    query(embedding: Float32Array, topK: number, filter?: string): QueryResult[] {
       const results = handle.querySync({
         fieldName: 'embedding',
         vector: Array.from(embedding),
         topk: topK,
         outputFields: ['filePath', 'chunkIndex', 'modelId', 'lineStart', 'lineEnd', 'chunkText'],
+        ...(filter ? { filter } : {}),
       });
 
       return results.map((r) => ({
@@ -199,8 +201,10 @@ function createCollection(storageDir: string, name: string, dim: number): Vector
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export interface ProjectCollections {
-  /** 768-dim collection for all embeddings (code, text, image) */
+  /** 768-dim collection for code+text embeddings (Qwen3) */
   col768: VectorCollection;
+  /** 512-dim collection for image embeddings (CLIP) */
+  col512: VectorCollection;
   /** Resolved storage path on disk */
   storagePath: string;
 }
@@ -211,14 +215,16 @@ export function openProjectCollections(projectDir: string): ProjectCollections {
   ensureSchemaVersion(storageDir);
 
   const col768 = createCollection(storageDir, 'col-768', 768);
+  const col512 = createCollection(storageDir, 'col-512', 512);
 
-  return { col768, storagePath: storageDir };
+  return { col768, col512, storagePath: storageDir };
 }
 
-export function openCollection(projectDir: string, name: 'col-768'): VectorCollection {
+export function openCollection(projectDir: string, name: 'col-768' | 'col-512'): VectorCollection {
   const storageDir = resolveProjectStoragePath(projectDir);
   mkdirSync(storageDir, { recursive: true });
   ensureSchemaVersion(storageDir);
 
-  return createCollection(storageDir, name, 768);
+  const dim = name === 'col-768' ? 768 : 512;
+  return createCollection(storageDir, name, dim);
 }

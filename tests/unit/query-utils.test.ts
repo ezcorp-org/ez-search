@@ -189,7 +189,7 @@ describe('filterImageResults', () => {
       lineStart: 0,
       lineEnd: 0,
       chunkText: '',
-      modelId: 'Xenova/siglip-base-patch16-224',
+      modelId: 'Xenova/clip-vit-base-patch16',
       score: 0.5,
       ...overrides,
     };
@@ -197,10 +197,10 @@ describe('filterImageResults', () => {
 
   test('filters by modelId function', () => {
     const results = [
-      makeImageNormalized({ modelId: 'Xenova/siglip-base-patch16-224', score: 0.6 }),
+      makeImageNormalized({ modelId: 'Xenova/clip-vit-base-patch16', score: 0.6 }),
       makeImageNormalized({ modelId: 'nomic-v1', score: 0.8, filePath: 'doc.md' }),
     ];
-    const filtered = filterImageResults(results, (id) => id.includes('siglip'), { topK: 10 });
+    const filtered = filterImageResults(results, (id) => id.includes('clip'), { topK: 10 });
     expect(filtered).toHaveLength(1);
     expect(filtered[0].filePath).toBe('photos/cat.jpg');
   });
@@ -267,7 +267,7 @@ describe('filterImageResults', () => {
 
   test('returns empty array when no results match', () => {
     const results = [makeImageNormalized({ modelId: 'onnx-community/Qwen3-Embedding-0.6B-ONNX' })];
-    const filtered = filterImageResults(results, (id) => id.includes('siglip'), { topK: 10 });
+    const filtered = filterImageResults(results, (id) => id.includes('clip'), { topK: 10 });
     expect(filtered).toEqual([]);
   });
 
