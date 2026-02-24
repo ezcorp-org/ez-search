@@ -2,12 +2,12 @@
 	import { onMount } from 'svelte';
 	import TerminalAnimation from './TerminalAnimation.svelte';
 
-	let visible = $state(false);
 	let section: HTMLElement;
 
 	onMount(() => {
+		section.classList.add('is-hidden');
 		const observer = new IntersectionObserver(
-			([entry]) => { if (entry.isIntersecting) visible = true; },
+			([entry]) => { if (entry.isIntersecting) section.classList.remove('is-hidden'); },
 			{ threshold: 0.1 }
 		);
 		observer.observe(section);
@@ -17,7 +17,7 @@
 
 <section
 	bind:this={section}
-	class="py-24 md:py-32 px-6 transition-all duration-700 {visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}"
+	class="fade-section py-24 md:py-32 px-6"
 	aria-label="Terminal demo"
 >
 	<div class="mx-auto max-w-[800px]">

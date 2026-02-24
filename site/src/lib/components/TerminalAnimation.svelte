@@ -41,9 +41,9 @@
 			case 'command': return 'text-ez-green';
 			case 'heading': return 'text-light font-semibold';
 			case 'file': return 'text-ez-yellow';
-			case 'code': return 'text-light/70';
+			case 'code': return 'text-body';
 			case 'progress': return 'text-ez-blue';
-			default: return 'text-light/80';
+			default: return 'text-body';
 		}
 	}
 
@@ -124,7 +124,7 @@
 	});
 </script>
 
-<div id="terminal-viewport" class="font-mono text-sm leading-6 p-5 min-h-[320px] overflow-x-auto">
+<div id="terminal-viewport" class="font-mono text-xs sm:text-sm leading-6 p-4 sm:p-6 min-h-[340px] overflow-x-auto">
 	{#each displayedLines as line}
 		<div class={colorClass(line.type)}>
 			{#if line.type === 'blank'}
