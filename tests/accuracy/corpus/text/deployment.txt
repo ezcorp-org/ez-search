@@ -1,0 +1,53 @@
+Docker Container Deployment Guide
+
+This guide covers deploying applications using Docker containers with CI/CD pipelines.
+
+Building Docker Images
+
+A Dockerfile defines the build steps for your container image. Use multi-stage builds to keep the final image small:
+
+  FROM node:20-alpine AS builder
+  WORKDIR /app
+  COPY package.json package-lock.json ./
+  RUN npm ci
+  COPY . .
+  RUN npm run build
+
+  FROM node:20-alpine
+  WORKDIR /app
+  COPY --from=builder /app/dist ./dist
+  COPY --from=builder /app/node_modules ./node_modules
+  CMD ["node", "dist/server.js"]
+
+Build the image with: docker build -t myapp:latest .
+
+Running Containers
+
+Start a container from the built image with environment variables and port mappings:
+
+  docker run -d --name myapp -p 3000:3000 -e DATABASE_URL=postgres://... myapp:latest
+
+Use docker-compose for multi-service setups that need databases, caches, and the application together.
+
+Container Orchestration
+
+For production deployments, use Kubernetes or Docker Swarm to manage container scaling, health checks, and rolling updates. Define deployments with desired replica counts and resource limits.
+
+CI/CD Pipeline Integration
+
+Automate the build-test-deploy cycle with a CI/CD pipeline:
+
+1. Push code to the repository
+2. CI server runs tests automatically
+3. On success, build and tag the Docker image
+4. Push the image to a container registry (Docker Hub, ECR, GCR)
+5. Deploy the new image to staging for verification
+6. Promote to production after approval
+
+Health Checks and Monitoring
+
+Configure health check endpoints so the orchestrator can detect and restart unhealthy containers. Monitor container logs, resource usage, and response times with tools like Prometheus and Grafana.
+
+Secrets Management
+
+Never bake secrets into Docker images. Use environment variables, Docker secrets, or a vault service (HashiCorp Vault, AWS Secrets Manager) to inject credentials at runtime.

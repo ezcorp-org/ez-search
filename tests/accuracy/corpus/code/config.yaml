@@ -1,0 +1,35 @@
+# Database connection configuration
+# Defines connection pools, credentials, and timeout settings for PostgreSQL and Redis.
+
+database:
+  postgres:
+    host: localhost
+    port: 5432
+    name: myapp_production
+    username: dbadmin
+    password: ${DB_PASSWORD}
+    pool:
+      min: 5
+      max: 20
+      idle_timeout: 30000
+    ssl:
+      enabled: true
+      ca_cert: /etc/ssl/certs/rds-ca.pem
+
+  redis:
+    host: localhost
+    port: 6379
+    password: ${REDIS_PASSWORD}
+    db: 0
+    max_retries: 3
+    connection_timeout: 5000
+
+migrations:
+  directory: ./db/migrations
+  table: schema_migrations
+
+backup:
+  enabled: true
+  schedule: "0 2 * * *"
+  retention_days: 30
+  storage: s3://backups/database/
