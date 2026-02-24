@@ -10,7 +10,7 @@
 
 	<div class="relative mx-auto max-w-[1200px] text-center">
 		<h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-6">
-			Make it <span class="text-ez-yellow">EZ.</span>
+			Make it <span class="glass-slot"><span class="search-glass"><img src="/favicon.svg" alt="EZ" class="hero-logo" /></span></span>
 		</h1>
 
 		<p class="text-lg md:text-xl text-body max-w-2xl mx-auto mb-10 leading-relaxed">
@@ -36,3 +36,52 @@
 		</div>
 	</div>
 </section>
+
+<style>
+	.hero-logo {
+		width: 1.8em;
+		height: 1.8em;
+	}
+
+	/* Reserves inline space for the icon so text never moves */
+	.glass-slot {
+		display: inline-block;
+		width: 1.8em;
+		height: 1.8em;
+		position: relative;
+		vertical-align: -0.55em;
+	}
+
+	/* Icon is positioned absolutely so its animation doesn't affect layout */
+	.search-glass {
+		position: absolute;
+		left: 0;
+		top: 11px;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		.search-glass {
+			animation: searchSwing 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+		}
+
+		@keyframes searchSwing {
+			0% {
+				transform: translate(-140px, -80vh) rotate(-180deg) scale(0.5);
+				opacity: 0;
+			}
+			5% {
+				opacity: 1;
+			}
+			33% {
+				transform: translate(120px, -30vh) rotate(120deg) scale(0.7);
+			}
+			66% {
+				transform: translate(-60px, -8vh) rotate(-45deg) scale(0.9);
+			}
+			100% {
+				transform: translate(0, 0) rotate(0deg) scale(1);
+				opacity: 1;
+			}
+		}
+	}
+</style>
