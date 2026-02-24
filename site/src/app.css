@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+	--color-dark: #0A0A0A;
+	--color-light: #FAFAFA;
+	--color-muted: #A1A1AA;
+	--color-ez-yellow: #F4C430;
+	--color-ez-blue: #0066FF;
+	--color-ez-green: #00CC66;
+	--color-ez-purple: #8B5CF6;
+	--color-card: #141414;
+	--color-card-border: #262626;
+	--font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+	--font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+html {
+	scroll-behavior: smooth;
+}
