@@ -14,7 +14,7 @@ function makeResult(overrides: Partial<NormalizedResult> = {}): NormalizedResult
     lineStart: 1,
     lineEnd: 10,
     chunkText: 'some code',
-    modelId: 'jina-v2',
+    modelId: 'onnx-community/Qwen3-Embedding-0.6B-ONNX',
     score: 0.9,
     ...overrides,
   };
@@ -33,7 +33,7 @@ function makeQueryResult(
       lineStart: 1,
       lineEnd: 10,
       chunkText: 'some code',
-      modelId: 'jina-v2',
+      modelId: 'onnx-community/Qwen3-Embedding-0.6B-ONNX',
       ...metadata,
     },
   };
@@ -93,10 +93,10 @@ describe('filterAndCollapse', () => {
 
   test('filters by modelId function', () => {
     const results = [
-      makeResult({ modelId: 'jina-v2', score: 0.9 }),
+      makeResult({ modelId: 'onnx-community/Qwen3-Embedding-0.6B-ONNX', score: 0.9 }),
       makeResult({ modelId: 'openai-v3', score: 0.8 }),
     ];
-    const collapsed = filterAndCollapse(results, (id) => id === 'jina-v2', { topK: 10 });
+    const collapsed = filterAndCollapse(results, (id) => id.includes('Qwen3-Embedding'), { topK: 10 });
     expect(collapsed).toHaveLength(1);
     expect(collapsed[0].score).toBe(0.9);
   });
@@ -189,7 +189,7 @@ describe('filterImageResults', () => {
       lineStart: 0,
       lineEnd: 0,
       chunkText: '',
-      modelId: 'Xenova/clip-vit-base-patch16',
+      modelId: 'Xenova/siglip-base-patch16-224',
       score: 0.5,
       ...overrides,
     };
@@ -197,10 +197,10 @@ describe('filterImageResults', () => {
 
   test('filters by modelId function', () => {
     const results = [
-      makeImageNormalized({ modelId: 'Xenova/clip-vit-base-patch16', score: 0.6 }),
+      makeImageNormalized({ modelId: 'Xenova/siglip-base-patch16-224', score: 0.6 }),
       makeImageNormalized({ modelId: 'nomic-v1', score: 0.8, filePath: 'doc.md' }),
     ];
-    const filtered = filterImageResults(results, (id) => id.includes('clip'), { topK: 10 });
+    const filtered = filterImageResults(results, (id) => id.includes('siglip'), { topK: 10 });
     expect(filtered).toHaveLength(1);
     expect(filtered[0].filePath).toBe('photos/cat.jpg');
   });
@@ -266,8 +266,8 @@ describe('filterImageResults', () => {
   });
 
   test('returns empty array when no results match', () => {
-    const results = [makeImageNormalized({ modelId: 'jina-v2' })];
-    const filtered = filterImageResults(results, (id) => id.includes('clip'), { topK: 10 });
+    const results = [makeImageNormalized({ modelId: 'onnx-community/Qwen3-Embedding-0.6B-ONNX' })];
+    const filtered = filterImageResults(results, (id) => id.includes('siglip'), { topK: 10 });
     expect(filtered).toEqual([]);
   });
 
