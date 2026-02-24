@@ -40,8 +40,9 @@
 			</div>
 		</div>
 
-		<div class="text-center text-sm text-muted pt-8 border-t border-card-border">
-			&copy; 2026 EZCorp. Make it EZ.
+		<div class="flex items-center justify-center gap-2 text-sm text-muted pt-8 border-t border-card-border">
+			<img src="/favicon.svg" alt="" width="20" height="20" class="shrink-0" />
+			<span>&copy; 2026 EZCorp. Make it EZ.</span>
 		</div>
 	</div>
 </footer>
