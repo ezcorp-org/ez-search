@@ -35,6 +35,12 @@
 				class="text-muted hover:text-light transition-colors text-sm"
 			>GitHub</a>
 			<a
+				href="https://discord.ezcorp.org"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="text-muted hover:text-light transition-colors text-sm"
+			>Discord</a>
+			<a
 				href="#cta"
 				class="bg-ez-yellow text-dark px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition-all"
 			>Get Started</a>
@@ -67,6 +73,13 @@
 				onclick={closeMenu}
 				class="text-body hover:text-light transition-colors text-sm py-2"
 			>GitHub</a>
+			<a
+				href="https://discord.ezcorp.org"
+				target="_blank"
+				rel="noopener noreferrer"
+				onclick={closeMenu}
+				class="text-body hover:text-light transition-colors text-sm py-2"
+			>Discord</a>
 			<a
 				href="#cta"
 				onclick={closeMenu}

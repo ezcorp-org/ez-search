@@ -33,6 +33,9 @@
 					<li>
 						<a href="https://github.com/ezcorp-org" target="_blank" rel="noopener noreferrer" class="hover:text-light transition-colors">GitHub Organization</a>
 					</li>
+					<li>
+						<a href="https://discord.ezcorp.org" target="_blank" rel="noopener noreferrer" class="hover:text-light transition-colors">Discord</a>
+					</li>
 				</ul>
 			</div>
 		</div>
