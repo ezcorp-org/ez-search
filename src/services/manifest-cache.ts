@@ -16,7 +16,7 @@ import { resolveProjectStoragePath } from '../config/paths.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-export const MANIFEST_VERSION = 5;
+export const MANIFEST_VERSION = 6;
 export const MANIFEST_FILENAME = 'manifest.json';
 
 // ── Types ─────────────────────────────────────────────────────────────────────

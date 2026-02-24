@@ -1,20 +1,21 @@
 /**
- * Query command — single-collection grouped semantic search.
+ * Query command — multi-collection grouped semantic search.
  *
  * Pipeline:
  *   1. Resolve project directory (cwd)
- *   2. Open vector collection (col-768 for all types)
+ *   2. Open vector collections (col-768 for code+text, col-512 for images)
  *   3. Load manifest for totalIndexed count
  *   4. For each requested type:
  *      a. code:  embed with Qwen3 (instruct prefix), query col-768, filter by Qwen3 modelId
  *      b. text:  embed with Qwen3 (instruct prefix), query col-768, filter by Qwen3 modelId
- *      c. image: embed with SigLIP text encoder, query col-768, filter by siglip modelId
+ *      c. image: embed with CLIP text encoder, query col-512
  *   5. Apply --threshold and --dir filters per type
  *   6. Collapse adjacent chunks per type
  *   7. Sort by score desc, slice to topK per type
  *   8. Output grouped JSON { code: [...], text: [...], image: [...] } or text with ## headers
  *
- * col-768 holds ALL vectors (code, text, image); they are distinguished by modelId metadata.
+ * col-768: Qwen3 code+text embeddings (same model, different instruct prefixes)
+ * col-512: CLIP image embeddings (separate vector space)
  */
 
 import type { CollapsedResult, ImageResult } from '../../services/query-utils.js';
@@ -107,6 +108,8 @@ export async function runQuery(
     // 4. Open vector collections as needed
     const { openCollection } = await import('../../services/vector-db.js');
     const col768 = openCollection(projectDir, 'col-768');
+    const needsImages = typesToQuery.includes('image');
+    const col512 = needsImages ? openCollection(projectDir, 'col-512') : null;
 
     try {
 
@@ -115,7 +118,7 @@ export async function runQuery(
     const { normalizeResults, filterAndCollapse, filterImageResults } = await import('../../services/query-utils.js');
 
     const hasPostFilters = options.dir !== undefined || threshold !== undefined;
-    // Over-fetch for mixed col-768 + optional post-filters
+    // Over-fetch for optional post-filters (dir, threshold, chunk collapsing)
     const fetchCount = topK * 5 * (hasPostFilters ? 3 : 1);
 
     // ── Execute per-type queries sequentially (memory conservation) ──────────
@@ -127,7 +130,7 @@ export async function runQuery(
     let imageResults: ImageResult[] = [];
 
     if (typesToQuery.includes('code')) {
-      // Code: Qwen3 embedding, filter for Qwen3 modelId
+      // Code: Qwen3 embedding with instruct prefix, query col-768
       let pipe: Awaited<ReturnType<typeof createEmbeddingPipeline>> | null = null;
       try {
         process.stderr.write(process.stderr.isTTY ? '\r\x1b[Kcode: loading model...' : 'code: loading model...\n');
@@ -153,7 +156,7 @@ export async function runQuery(
     }
 
     if (typesToQuery.includes('text')) {
-      // Text: Qwen3 embedding with instruct prefix, filter for Qwen3 modelId
+      // Text: Qwen3 embedding with instruct prefix, query col-768
       let pipe: Awaited<ReturnType<typeof createEmbeddingPipeline>> | null = null;
       try {
         process.stderr.write(process.stderr.isTTY ? '\r\x1b[Ktext: loading model...' : 'text: loading model...\n');
@@ -178,25 +181,25 @@ export async function runQuery(
       }
     }
 
-    if (typesToQuery.includes('image')) {
-      // Image: SigLIP text embedding, query col-768, filter for siglip modelId
-      let pipe: import('../../services/image-embedder.js').SiglipTextPipeline | null = null;
+    if (needsImages && col512) {
+      // Image: CLIP text embedding, query col-512 (separate collection)
+      let pipe: import('../../services/image-embedder.js').ClipTextPipeline | null = null;
       try {
         process.stderr.write(process.stderr.isTTY ? '\r\x1b[Kimage: loading model...' : 'image: loading model...\n');
-        const { createSiglipTextPipeline } = await import('../../services/image-embedder.js');
-        pipe = await createSiglipTextPipeline();
+        const { createClipTextPipeline } = await import('../../services/image-embedder.js');
+        pipe = await createClipTextPipeline();
         if (process.stderr.isTTY) process.stderr.write('\r\x1b[K');
         const [queryEmbedding] = await pipe.embedText([text]);
 
-        let rawResults: Awaited<ReturnType<typeof col768.query>>;
+        let rawResults: Awaited<ReturnType<typeof col512.query>>;
         try {
-          rawResults = col768.query(queryEmbedding, fetchCount);
+          rawResults = col512.query(queryEmbedding, fetchCount);
         } catch {
           rawResults = [];
         }
 
         const normalized = normalizeResults(rawResults);
-        imageResults = filterImageResults(normalized, (id) => id.includes('siglip'), { threshold, dir: options.dir, topK });
+        imageResults = filterImageResults(normalized, () => true, { threshold, dir: options.dir, topK });
       } catch (err) {
         process.stderr.write(`[query] image pipeline error: ${err instanceof Error ? err.message : String(err)}\n`);
       } finally {
@@ -308,6 +311,7 @@ export async function runQuery(
 
     } finally {
       col768.close();
+      if (col512) col512.close();
     }
   } catch (err) {
     const { emitError } = await import('../errors.js');

@@ -1,30 +1,33 @@
 /**
- * SigLIP image embedding service — converts image files to 768-dim Float32Array embeddings.
+ * CLIP image embedding service — converts image files to 512-dim Float32Array embeddings.
  *
- * Uses SiglipVisionModel (not the full SigLIP model) with fp32 dtype.
+ * Uses CLIPVisionModelWithProjection (not the full CLIP model) with fp32 dtype.
+ * Quantized variants (int8, uint8) fail in onnxruntime-node with:
+ *   "ConvInteger(10) is not implemented"
+ * Therefore, dtype: 'fp32' is REQUIRED and must not be changed.
  *
  * Supported formats: .jpg, .jpeg, .png, .webp (anything RawImage can decode).
  *
- * One image produces one 768-dim vector — no chunking is performed.
+ * One image produces one 512-dim vector — no chunking is performed.
  * Model weights are cached in ~/.ez-search/models/ alongside text/code models.
  */
 
-import { SiglipVisionModel, SiglipTextModel, AutoProcessor, AutoTokenizer, RawImage, env } from '@huggingface/transformers';
+import { CLIPVisionModelWithProjection, CLIPTextModelWithProjection, AutoProcessor, AutoTokenizer, RawImage, env } from '@huggingface/transformers';
 import { resolveModelCachePath } from '../config/paths.js';
 import { createDownloadProgressCallback } from './download-progress.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const SIGLIP_MODEL_ID = 'Xenova/siglip-base-patch16-224';
-const SIGLIP_DIM = 768;
+const CLIP_MODEL_ID = 'Xenova/clip-vit-base-patch16';
+const CLIP_DIM = 512;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 /**
- * Text-to-image embedding pipeline using SigLIP's text encoder.
- * Encodes text queries into the same 768-dim space as SigLIP image embeddings.
+ * Text-to-image embedding pipeline using CLIP's text encoder.
+ * Encodes text queries into the same 512-dim space as CLIP image embeddings.
  */
-export interface SiglipTextPipeline {
+export interface ClipTextPipeline {
   embedText(texts: string[]): Promise<Float32Array[]>;
   readonly modelId: string;
   readonly dim: number;
@@ -33,14 +36,14 @@ export interface SiglipTextPipeline {
 
 /**
  * Embedding pipeline for image files.
- * One call to embedImage() returns one 768-dim Float32Array.
+ * One call to embedImage() returns one 512-dim Float32Array.
  */
 export interface ImageEmbeddingPipeline {
-  /** Generate a 768-dim embedding from an image buffer. */
+  /** Generate a 512-dim embedding from an image buffer. */
   embedImage(buf: Buffer | Uint8Array): Promise<Float32Array>;
   /** The HuggingFace model ID that was loaded */
   readonly modelId: string;
-  /** Embedding dimension — always 768 for SigLIP ViT-B/16 */
+  /** Embedding dimension — always 512 for CLIP ViT-B/16 */
   readonly dim: number;
   /** Release resources held by the vision model */
   dispose(): Promise<void>;
@@ -51,8 +54,8 @@ export interface ImageEmbeddingPipeline {
 /**
  * L2-normalize a vector in-place.
  *
- * SiglipVisionModel and SiglipTextModel do NOT
- * normalize their output — only the full SigLIP model does. Without this,
+ * CLIPVisionModelWithProjection and CLIPTextModelWithProjection do NOT
+ * normalize their output — only the full CLIPModel does. Without this,
  * cosine distances in Zvec are meaningless (all scores collapse to ~0.21).
  */
 function l2Normalize(vec: Float32Array): Float32Array {
@@ -66,46 +69,36 @@ function l2Normalize(vec: Float32Array): Float32Array {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * Create an ImageEmbeddingPipeline backed by SigLIP ViT-B/16 (fp32).
+ * Create an ImageEmbeddingPipeline backed by CLIP ViT-B/16 (fp32).
  *
- * Loads the AutoProcessor and SiglipVisionModel in parallel.
+ * Loads the AutoProcessor and CLIPVisionModelWithProjection in parallel.
  * Model weights are cached in ~/.ez-search/models/.
  */
 export async function createImageEmbeddingPipeline(): Promise<ImageEmbeddingPipeline> {
-  // Set cache dir BEFORE first model load — this is critical
   env.cacheDir = resolveModelCachePath();
   env.allowRemoteModels = true;
 
-  const cb = createDownloadProgressCallback(SIGLIP_MODEL_ID);
+  const cb = createDownloadProgressCallback(CLIP_MODEL_ID);
 
-  // Load processor and vision model in parallel for faster startup
   const [processor, visionModel] = await Promise.all([
-    AutoProcessor.from_pretrained(SIGLIP_MODEL_ID, { progress_callback: cb }),
-    SiglipVisionModel.from_pretrained(SIGLIP_MODEL_ID, {
+    AutoProcessor.from_pretrained(CLIP_MODEL_ID, { progress_callback: cb }),
+    CLIPVisionModelWithProjection.from_pretrained(CLIP_MODEL_ID, {
       dtype: 'fp32',
       progress_callback: cb,
     }),
   ]);
 
-  console.error(`[image-embedder] Loaded SigLIP vision model (fp32)`);
+  console.error(`[image-embedder] Loaded CLIP vision model (fp32)`);
 
   return {
-    modelId: SIGLIP_MODEL_ID,
-    dim: SIGLIP_DIM,
+    modelId: CLIP_MODEL_ID,
+    dim: CLIP_DIM,
 
     async embedImage(buf: Buffer | Uint8Array): Promise<Float32Array> {
-      // Use fromBlob instead of file:// URLs to avoid encoding issues with
-      // special Unicode characters in filenames (e.g. macOS narrow no-break spaces).
       const image = await RawImage.fromBlob(new Blob([new Uint8Array(buf)]));
-
-      // Preprocess: resize, normalize, convert to tensor expected by SigLIP
       const inputs = await processor(image);
-
-      // Run the vision encoder — output.pooler_output is a [1, 768] Tensor
       const output = await visionModel(inputs);
-
-      // Extract and L2-normalize (projection models don't normalize)
-      return l2Normalize(new Float32Array(output.pooler_output.data.slice(0, SIGLIP_DIM)));
+      return l2Normalize(new Float32Array(output.image_embeds.data.slice(0, CLIP_DIM)));
     },
 
     async dispose(): Promise<void> {
@@ -117,37 +110,37 @@ export async function createImageEmbeddingPipeline(): Promise<ImageEmbeddingPipe
 }
 
 /**
- * Create a SiglipTextPipeline backed by SigLIP ViT-B/16 (fp32).
+ * Create a ClipTextPipeline backed by CLIP ViT-B/16 (fp32).
  *
- * Loads AutoTokenizer and SiglipTextModel in parallel.
- * Used for text-to-image search: encode query text into SigLIP's 768-dim space,
+ * Loads AutoTokenizer and CLIPTextModelWithProjection in parallel.
+ * Used for text-to-image search: encode query text into CLIP's 512-dim space,
  * then find nearest image embeddings.
  */
-export async function createSiglipTextPipeline(): Promise<SiglipTextPipeline> {
+export async function createClipTextPipeline(): Promise<ClipTextPipeline> {
   env.cacheDir = resolveModelCachePath();
   env.allowRemoteModels = true;
 
-  const cb = createDownloadProgressCallback(SIGLIP_MODEL_ID);
+  const cb = createDownloadProgressCallback(CLIP_MODEL_ID);
 
   const [tokenizer, textModel] = await Promise.all([
-    AutoTokenizer.from_pretrained(SIGLIP_MODEL_ID, { progress_callback: cb }),
-    SiglipTextModel.from_pretrained(SIGLIP_MODEL_ID, { dtype: 'fp32', progress_callback: cb }),
+    AutoTokenizer.from_pretrained(CLIP_MODEL_ID, { progress_callback: cb }),
+    CLIPTextModelWithProjection.from_pretrained(CLIP_MODEL_ID, { dtype: 'fp32', progress_callback: cb }),
   ]);
 
-  console.error(`[image-embedder] Loaded SigLIP text model (fp32)`);
+  console.error(`[image-embedder] Loaded CLIP text model (fp32)`);
 
   return {
-    modelId: SIGLIP_MODEL_ID,
-    dim: SIGLIP_DIM,
+    modelId: CLIP_MODEL_ID,
+    dim: CLIP_DIM,
 
     async embedText(texts: string[]): Promise<Float32Array[]> {
       const inputs = tokenizer(texts, { padding: true, truncation: true });
       const output = await textModel(inputs);
-      const data = output.pooler_output.data as Float32Array;
+      const data = output.text_embeds.data as Float32Array;
 
       const embeddings: Float32Array[] = [];
       for (let i = 0; i < texts.length; i++) {
-        embeddings.push(l2Normalize(new Float32Array(data.slice(i * SIGLIP_DIM, (i + 1) * SIGLIP_DIM))));
+        embeddings.push(l2Normalize(new Float32Array(data.slice(i * CLIP_DIM, (i + 1) * CLIP_DIM))));
       }
       return embeddings;
     },
