@@ -324,7 +324,7 @@ export async function runIndex(
   const { ProgressReporter } = await import('../progress.js');
   const progress = new ProgressReporter({
     quiet: options.quiet,
-    json: options.format !== 'text',
+    json: options.format === 'json',
   });
 
   try {

@@ -128,7 +128,9 @@ export async function runQuery(
       // Code: Qwen3 embedding, filter for Qwen3 modelId
       let pipe: Awaited<ReturnType<typeof createEmbeddingPipeline>> | null = null;
       try {
+        if (process.stderr.isTTY) process.stderr.write('\r\x1b[Kcode: loading model...');
         pipe = await createEmbeddingPipeline('code');
+        if (process.stderr.isTTY) process.stderr.write('\r\x1b[K');
         const prefixedQuery = `Instruct: Given a search query, retrieve relevant code snippets\nQuery: ${text}`;
         const [queryEmbedding] = await pipe.embed([prefixedQuery]);
 
@@ -152,7 +154,9 @@ export async function runQuery(
       // Text: Qwen3 embedding with instruct prefix, filter for Qwen3 modelId
       let pipe: Awaited<ReturnType<typeof createEmbeddingPipeline>> | null = null;
       try {
+        if (process.stderr.isTTY) process.stderr.write('\r\x1b[Ktext: loading model...');
         pipe = await createEmbeddingPipeline('text');
+        if (process.stderr.isTTY) process.stderr.write('\r\x1b[K');
         const prefixedQuery = `Instruct: Given a search query, retrieve relevant text passages\nQuery: ${text}`;
         const [queryEmbedding] = await pipe.embed([prefixedQuery]);
 
@@ -176,8 +180,10 @@ export async function runQuery(
       // Image: SigLIP text embedding, query col-768, filter for siglip modelId
       let pipe: import('../../services/image-embedder.js').SiglipTextPipeline | null = null;
       try {
+        if (process.stderr.isTTY) process.stderr.write('\r\x1b[Kimage: loading model...');
         const { createSiglipTextPipeline } = await import('../../services/image-embedder.js');
         pipe = await createSiglipTextPipeline();
+        if (process.stderr.isTTY) process.stderr.write('\r\x1b[K');
         const [queryEmbedding] = await pipe.embedText([text]);
 
         let rawResults: Awaited<ReturnType<typeof col768.query>>;
