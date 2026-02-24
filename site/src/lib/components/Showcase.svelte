@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import TerminalAnimation from './TerminalAnimation.svelte';
-	import ImageResults from './ImageResults.svelte';
 
 	type Tab = 'code' | 'documents' | 'images';
 
@@ -46,19 +45,32 @@
 		{ text: '    for lower cold-start latency at the edge...', type: 'code' as const },
 	];
 
+	const imagesSequence = [
+		{ text: '$ ez-search query "login screen design" --type image', type: 'command' as const },
+		{ text: '', type: 'blank' as const },
+		{ text: '## Images', type: 'heading' as const },
+		{ text: 'File: ui/screens/login.png | Relevance: 0.9134', type: 'file' as const },
+		{ text: '', type: 'blank' as const },
+		{ text: 'File: mockups/auth-flow.svg | Relevance: 0.8711', type: 'file' as const },
+		{ text: '', type: 'blank' as const },
+		{ text: 'File: screenshots/signin-v2.jpg | Relevance: 0.8205', type: 'file' as const },
+		{ text: '', type: 'blank' as const },
+		{ text: 'File: design/onboarding.png | Relevance: 0.7389', type: 'file' as const },
+		{ text: '', type: 'blank' as const },
+		{ text: 'File: assets/social-login.svg | Relevance: 0.6902', type: 'file' as const },
+		{ text: '', type: 'blank' as const },
+		{ text: 'File: wireframes/auth.png | Relevance: 0.6541', type: 'file' as const },
+	];
+
 	const tabs: { id: Tab; label: string; icon: string; color: string; glowColor: string }[] = [
 		{ id: 'code', label: 'Code', icon: '{ }', color: 'bg-ez-green/15 text-ez-green border-ez-green/30', glowColor: 'shadow-[0_0_12px_rgba(0,204,102,0.3)]' },
 		{ id: 'documents', label: 'Documents', icon: '📄', color: 'bg-ez-blue/15 text-ez-blue border-ez-blue/30', glowColor: 'shadow-[0_0_12px_rgba(0,102,255,0.3)]' },
 		{ id: 'images', label: 'Images', icon: '🖼', color: 'bg-ez-purple/15 text-ez-purple border-ez-purple/30', glowColor: 'shadow-[0_0_12px_rgba(139,92,246,0.3)]' },
 	];
 
-	// Key to force remount of ImageResults when switching back to images tab
-	let imageKey = $state(0);
-
 	function selectTab(tab: Tab) {
 		if (tab === activeTab) return;
 		activeTab = tab;
-		if (tab === 'images') imageKey++;
 	}
 
 	onMount(() => {
@@ -125,9 +137,7 @@
 					</div>
 				{:else}
 					<div class="animate-fadeIn">
-						{#key imageKey}
-							<ImageResults />
-						{/key}
+						<TerminalAnimation sequence={imagesSequence} active={visible && activeTab === 'images'} />
 					</div>
 				{/if}
 			</div>
