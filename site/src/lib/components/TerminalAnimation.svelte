@@ -110,7 +110,7 @@
 	});
 </script>
 
-<div bind:this={viewport} class="font-mono text-xs sm:text-sm leading-6 p-4 sm:p-6 min-h-[340px] overflow-x-auto">
+<div bind:this={viewport} class="font-mono text-xs sm:text-sm leading-6 p-4 sm:p-6 h-[340px] overflow-y-auto overflow-x-auto">
 	{#each displayedLines as line}
 		<div class={colorClass(line.type)}>
 			{#if line.type === 'blank'}
