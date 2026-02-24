@@ -24,6 +24,12 @@ Built as a contextual retrieval engine for AI coding assistants like Claude Code
 
 ```bash
 npm install -g ez-search
+# or
+yarn global add ez-search
+# or
+pnpm add -g ez-search
+# or
+bun add -g ez-search
 ```
 
 Or from source:
