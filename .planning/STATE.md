@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 
 Phase: v1.0 complete (8 phases, 14 plans)
 Status: Milestone shipped, ready for next milestone
-Last activity: 2026-02-23 -- v1.0 milestone complete
+Last activity: 2026-02-24 -- Completed quick task 002: Landing page
 
 Progress: [##########] 100% (v1.0 shipped)
 
@@ -27,6 +27,7 @@ Full decision history available in .planning/milestones/v1-ROADMAP.md.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 001 | Clean up tech debt: remove clearManifest dead export, fix --type NO_INDEX guard | 2026-02-23 | cf02f92 | [001-clean-up-tech-debt](./quick/001-clean-up-tech-debt/) |
+| 002 | Landing page: SvelteKit + Tailwind + Cloudflare Workers | 2026-02-24 | 2c5ab60 | [002-landing-page-sveltekit-cloudflare](./quick/002-landing-page-sveltekit-cloudflare/) |
 
 ### Blockers/Concerns
 
