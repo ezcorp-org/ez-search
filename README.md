@@ -38,10 +38,17 @@ npm run build
 ## Quick Start
 
 ```bash
+# Just search — auto-indexes on first run, no setup needed
+ez-search query "error handling in the auth module"
+```
+
+Or if you prefer to index explicitly first:
+
+```bash
 # Index the current directory
 ez-search index .
 
-# Search your code
+# Then search
 ez-search query "error handling in the auth module"
 
 # Check index status
@@ -192,7 +199,7 @@ Models are downloaded from Hugging Face on first use. If downloads fail, check y
 
 **"No index found" error**
 
-You need to index before querying. Run `ez-search index .` in your project directory first.
+Querying auto-indexes on first run. If you used `--no-auto-index`, run `ez-search index .` in your project directory first.
 
 **"No supported files found" error**
 
