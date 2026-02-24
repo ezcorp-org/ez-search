@@ -125,6 +125,23 @@ export function filterAndCollapse(
 }
 
 /**
+ * Map raw vector DB query results to a normalized shape with CLIP-rescaled scoring.
+ * CLIP cross-modal cosine similarities fall in a narrow [0.15, 0.40] band, so we
+ * rescale: score = clamp((1 - distance - 0.15) / 0.25, 0, 1) rounded to 4 decimals.
+ */
+export function normalizeImageResults(rawResults: QueryResult[]): NormalizedResult[] {
+  return rawResults.map((r) => ({
+    filePath: String(r.metadata['filePath'] ?? ''),
+    chunkIndex: Number(r.metadata['chunkIndex'] ?? 0),
+    lineStart: Number(r.metadata['lineStart'] ?? 0),
+    lineEnd: Number(r.metadata['lineEnd'] ?? 0),
+    chunkText: String(r.metadata['chunkText'] ?? ''),
+    modelId: String(r.metadata['modelId'] ?? ''),
+    score: Math.round(Math.max(0, Math.min(1, (1 - r.distance - 0.15) / 0.25)) * 10000) / 10000,
+  }));
+}
+
+/**
  * Filter image results by modelId, threshold, dir prefix; deduplicate by filePath
  * keeping highest score; sort by score desc; slice to topK.
  *

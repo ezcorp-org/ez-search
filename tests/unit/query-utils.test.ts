@@ -2,6 +2,7 @@ import { describe, test, expect } from 'bun:test';
 import type { QueryResult } from '../../src/services/vector-db.js';
 import {
   normalizeResults,
+  normalizeImageResults,
   filterAndCollapse,
   filterImageResults,
   type NormalizedResult,
@@ -85,6 +86,37 @@ describe('normalizeResults', () => {
     expect(result.chunkText).toBe('function bar() {}');
     expect(result.modelId).toBe('openai-v3');
     expect(result.score).toBe(0.8);
+  });
+});
+
+describe('normalizeImageResults', () => {
+  // CLIP similarities fall in [0.15, 0.40]; distance = 1 - similarity.
+  // Formula: clamp((1 - distance - 0.15) / 0.25, 0, 1)
+  describe('rescales CLIP similarity range [0.15, 0.40] to [0, 1]', () => {
+    test('distance 0.85 (sim 0.15) -> score 0.0 (floor of CLIP range)', () => {
+      const [result] = normalizeImageResults([makeQueryResult(0.85)]);
+      expect(result.score).toBe(0);
+    });
+
+    test('distance 0.60 (sim 0.40) -> score 1.0 (ceiling of CLIP range)', () => {
+      const [result] = normalizeImageResults([makeQueryResult(0.60)]);
+      expect(result.score).toBe(1);
+    });
+
+    test('distance 0.725 (sim 0.275) -> score 0.5 (midpoint)', () => {
+      const [result] = normalizeImageResults([makeQueryResult(0.725)]);
+      expect(result.score).toBe(0.5);
+    });
+
+    test('distance 0.0 -> score 1.0 (clamped above range)', () => {
+      const [result] = normalizeImageResults([makeQueryResult(0.0)]);
+      expect(result.score).toBe(1);
+    });
+
+    test('distance 1.0 -> score 0.0 (clamped below range)', () => {
+      const [result] = normalizeImageResults([makeQueryResult(1.0)]);
+      expect(result.score).toBe(0);
+    });
   });
 });
 
