@@ -18,29 +18,65 @@
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content="https://ez-search.dev/" />
 	<meta property="og:site_name" content="ez-search" />
+	<meta property="og:locale" content="en_US" />
 	<meta property="og:title" content="ez-search — Semantic Codebase Search CLI | Local, Private, AI-Ready" />
 	<meta property="og:description" content="Search your codebase by meaning, not keywords. ez-search is a privacy-first CLI that runs ML locally — no cloud, no API keys. Built for developers and AI coding assistants." />
+	<meta property="og:image" content="https://ez-search.dev/og-image.png" />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta property="og:image:alt" content="ez-search — Semantic Codebase Search CLI. Search your codebase by meaning, not keywords." />
 
 	<!-- Twitter Card -->
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:title" content="ez-search — Semantic Codebase Search CLI" />
 	<meta name="twitter:description" content="Search your codebase by meaning, not keywords. Privacy-first CLI with local ML — no cloud, no API keys." />
+	<meta name="twitter:image" content="https://ez-search.dev/og-image.png" />
+	<meta name="twitter:image:alt" content="ez-search — Semantic Codebase Search CLI. Search your codebase by meaning, not keywords." />
 
 	<!-- JSON-LD Structured Data -->
 	{@html `<script type="application/ld+json">${JSON.stringify({
 		"@context": "https://schema.org",
-		"@type": "SoftwareApplication",
-		"name": "ez-search",
-		"description": "Semantic codebase search with zero cloud dependencies",
-		"applicationCategory": "DeveloperApplication",
-		"operatingSystem": "Cross-platform (Node.js)",
-		"offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-		"author": { "@type": "Organization", "name": "EZCorp" },
-		"softwareVersion": "1.0.10",
-		"license": "https://opensource.org/licenses/ISC",
-		"url": "https://github.com/ezcorp-org/ez-search",
-		"downloadUrl": "https://www.npmjs.com/package/@ez-corp/ez-search",
-		"codeRepository": "https://github.com/ezcorp-org/ez-search"
+		"@graph": [
+			{
+				"@type": "Organization",
+				"@id": "https://ez-search.dev/#organization",
+				"name": "EZCorp",
+				"url": "https://ez-search.dev",
+				"logo": {
+					"@type": "ImageObject",
+					"url": "https://ez-search.dev/og-image.png",
+					"width": 1200,
+					"height": 630
+				},
+				"sameAs": [
+					"https://github.com/ezcorp-org/ez-search",
+					"https://discord.ezcorp.org"
+				]
+			},
+			{
+				"@type": "WebSite",
+				"@id": "https://ez-search.dev/#website",
+				"url": "https://ez-search.dev",
+				"name": "ez-search",
+				"publisher": { "@id": "https://ez-search.dev/#organization" }
+			},
+			{
+				"@type": "SoftwareApplication",
+				"@id": "https://ez-search.dev/#software",
+				"name": "ez-search",
+				"description": "Semantic codebase search with zero cloud dependencies",
+				"applicationCategory": "DeveloperApplication",
+				"operatingSystem": "Cross-platform (Node.js)",
+				"offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+				"author": { "@id": "https://ez-search.dev/#organization" },
+				"softwareVersion": "1.0.10",
+				"license": "https://opensource.org/licenses/ISC",
+				"url": "https://ez-search.dev",
+				"downloadUrl": "https://www.npmjs.com/package/@ez-corp/ez-search",
+				"codeRepository": "https://github.com/ezcorp-org/ez-search",
+				"image": "https://ez-search.dev/og-image.png"
+			}
+		]
 	})}</script>`}
 </svelte:head>
 
