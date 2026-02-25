@@ -286,7 +286,7 @@ async function runTextEmbeddingPipeline(opts: {
       }
     }
 
-    await pipe.dispose();
+    await pipe.dispose(); // no-op with pipeline cache; actual cleanup in releaseAllPipelines()
   }
 
   // Commit new file entries to manifest
@@ -527,6 +527,8 @@ export async function runIndex(
     col512.optimize();
     col768.close();
     col512.close();
+    const { releaseAllPipelines } = await import('../../services/model-router.js');
+    await releaseAllPipelines();
     saveManifest(absPath, manifest);
     progress.done();
 
