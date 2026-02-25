@@ -12,16 +12,16 @@
 <svelte:head>
 	<title>ez-search — Semantic Codebase Search CLI | Local, Private, AI-Ready</title>
 	<meta name="description" content="Search your codebase by meaning, not keywords. ez-search is a privacy-first CLI that runs ML locally — no cloud, no API keys. Built for developers and AI coding assistants." />
-	<link rel="canonical" href="https://ez-search.dev/" />
+	<link rel="canonical" href="https://ez-search.ezcorp.org/" />
 
 	<!-- Open Graph -->
 	<meta property="og:type" content="website" />
-	<meta property="og:url" content="https://ez-search.dev/" />
+	<meta property="og:url" content="https://ez-search.ezcorp.org/" />
 	<meta property="og:site_name" content="ez-search" />
 	<meta property="og:locale" content="en_US" />
 	<meta property="og:title" content="ez-search — Semantic Codebase Search CLI | Local, Private, AI-Ready" />
 	<meta property="og:description" content="Search your codebase by meaning, not keywords. ez-search is a privacy-first CLI that runs ML locally — no cloud, no API keys. Built for developers and AI coding assistants." />
-	<meta property="og:image" content="https://ez-search.dev/og-image.png" />
+	<meta property="og:image" content="https://ez-search.ezcorp.org/og-image.png" />
 	<meta property="og:image:width" content="1200" />
 	<meta property="og:image:height" content="630" />
 	<meta property="og:image:alt" content="ez-search — Semantic Codebase Search CLI. Search your codebase by meaning, not keywords." />
@@ -30,7 +30,7 @@
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:title" content="ez-search — Semantic Codebase Search CLI" />
 	<meta name="twitter:description" content="Search your codebase by meaning, not keywords. Privacy-first CLI with local ML — no cloud, no API keys." />
-	<meta name="twitter:image" content="https://ez-search.dev/og-image.png" />
+	<meta name="twitter:image" content="https://ez-search.ezcorp.org/og-image.png" />
 	<meta name="twitter:image:alt" content="ez-search — Semantic Codebase Search CLI. Search your codebase by meaning, not keywords." />
 
 	<!-- JSON-LD Structured Data -->
@@ -39,12 +39,12 @@
 		"@graph": [
 			{
 				"@type": "Organization",
-				"@id": "https://ez-search.dev/#organization",
+				"@id": "https://ez-search.ezcorp.org/#organization",
 				"name": "EZCorp",
-				"url": "https://ez-search.dev",
+				"url": "https://ez-search.ezcorp.org",
 				"logo": {
 					"@type": "ImageObject",
-					"url": "https://ez-search.dev/og-image.png",
+					"url": "https://ez-search.ezcorp.org/og-image.png",
 					"width": 1200,
 					"height": 630
 				},
@@ -55,26 +55,26 @@
 			},
 			{
 				"@type": "WebSite",
-				"@id": "https://ez-search.dev/#website",
-				"url": "https://ez-search.dev",
+				"@id": "https://ez-search.ezcorp.org/#website",
+				"url": "https://ez-search.ezcorp.org",
 				"name": "ez-search",
-				"publisher": { "@id": "https://ez-search.dev/#organization" }
+				"publisher": { "@id": "https://ez-search.ezcorp.org/#organization" }
 			},
 			{
 				"@type": "SoftwareApplication",
-				"@id": "https://ez-search.dev/#software",
+				"@id": "https://ez-search.ezcorp.org/#software",
 				"name": "ez-search",
 				"description": "Semantic codebase search with zero cloud dependencies",
 				"applicationCategory": "DeveloperApplication",
 				"operatingSystem": "Cross-platform (Node.js)",
 				"offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-				"author": { "@id": "https://ez-search.dev/#organization" },
+				"author": { "@id": "https://ez-search.ezcorp.org/#organization" },
 				"softwareVersion": "1.0.10",
 				"license": "https://opensource.org/licenses/ISC",
-				"url": "https://ez-search.dev",
+				"url": "https://ez-search.ezcorp.org",
 				"downloadUrl": "https://www.npmjs.com/package/@ez-corp/ez-search",
 				"codeRepository": "https://github.com/ezcorp-org/ez-search",
-				"image": "https://ez-search.dev/og-image.png"
+				"image": "https://ez-search.ezcorp.org/og-image.png"
 			}
 		]
 	})}</script>`}
