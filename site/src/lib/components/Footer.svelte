@@ -4,8 +4,8 @@
 			<div>
 				<h3 class="text-sm font-semibold mb-4">Product</h3>
 				<ul class="space-y-2 text-sm text-muted">
-					<li><a href="#features" class="hover:text-light transition-colors">Features</a></li>
-					<li><a href="#how-it-works" class="hover:text-light transition-colors">How It Works</a></li>
+					<li><a href="/#features" class="hover:text-light transition-colors">Features</a></li>
+					<li><a href="/#how-it-works" class="hover:text-light transition-colors">How It Works</a></li>
 					<li>
 						<a href="https://github.com/ezcorp-org/ez-search" target="_blank" rel="noopener noreferrer" class="hover:text-light transition-colors">GitHub</a>
 					</li>
@@ -15,6 +15,7 @@
 			<div>
 				<h3 class="text-sm font-semibold mb-4">Resources</h3>
 				<ul class="space-y-2 text-sm text-muted">
+					<li><a href="/docs" class="hover:text-light transition-colors">Documentation</a></li>
 					<li>
 						<a href="https://github.com/ezcorp-org/ez-search#readme" target="_blank" rel="noopener noreferrer" class="hover:text-light transition-colors">README</a>
 					</li>

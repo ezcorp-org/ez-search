@@ -27,8 +27,9 @@
 
 		<!-- Desktop nav -->
 		<div class="hidden md:flex items-center gap-8">
-			<a href="#features" class="text-muted hover:text-light transition-colors text-sm">Features</a>
-			<a href="#how-it-works" class="text-muted hover:text-light transition-colors text-sm">How It Works</a>
+			<a href="/docs" class="text-muted hover:text-light transition-colors text-sm">Docs</a>
+			<a href="/#features" class="text-muted hover:text-light transition-colors text-sm">Features</a>
+			<a href="/#how-it-works" class="text-muted hover:text-light transition-colors text-sm">How It Works</a>
 			<a
 				href="https://github.com/ezcorp-org/ez-search"
 				target="_blank"
@@ -42,7 +43,7 @@
 				class="text-muted hover:text-light transition-colors text-sm"
 			>Discord</a>
 			<a
-				href="#cta"
+				href="/#cta"
 				class="bg-ez-yellow text-dark px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition-all"
 			>Get Started</a>
 		</div>
@@ -65,8 +66,9 @@
 	<!-- Mobile menu -->
 	{#if menuOpen}
 		<div class="md:hidden bg-dark/95 backdrop-blur-lg border-b border-card-border px-6 pb-6 flex flex-col gap-4">
-			<a href="#features" onclick={closeMenu} class="text-body hover:text-light transition-colors text-sm py-2">Features</a>
-			<a href="#how-it-works" onclick={closeMenu} class="text-body hover:text-light transition-colors text-sm py-2">How It Works</a>
+			<a href="/docs" onclick={closeMenu} class="text-body hover:text-light transition-colors text-sm py-2">Docs</a>
+			<a href="/#features" onclick={closeMenu} class="text-body hover:text-light transition-colors text-sm py-2">Features</a>
+			<a href="/#how-it-works" onclick={closeMenu} class="text-body hover:text-light transition-colors text-sm py-2">How It Works</a>
 			<a
 				href="https://github.com/ezcorp-org/ez-search"
 				target="_blank"
@@ -82,7 +84,7 @@
 				class="text-body hover:text-light transition-colors text-sm py-2"
 			>Discord</a>
 			<a
-				href="#cta"
+				href="/#cta"
 				onclick={closeMenu}
 				class="bg-ez-yellow text-dark px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition-all text-center"
 			>Get Started</a>
