@@ -12,7 +12,7 @@
  * Query prefixing (Instruct/Query format) is the caller's responsibility.
  */
 
-import { pipeline, env } from '@huggingface/transformers';
+import { pipeline, env, type FeatureExtractionPipeline as FEPipeline } from '@huggingface/transformers';
 import { resolveModelCachePath } from '../config/paths.js';
 import { createDownloadProgressCallback } from './download-progress.js';
 import type { ModelBackend } from '../types.js';
@@ -34,6 +34,18 @@ const MODEL_REGISTRY = {
 
 export type ModelType = keyof typeof MODEL_REGISTRY;
 
+// ── Pipeline cache ────────────────────────────────────────────────────────────
+// Caches loaded ONNX sessions by model ID so code+text (same model) share one load.
+// Cleared explicitly via releaseAllPipelines() at end of index/query commands.
+
+interface CachedPipeline {
+  pipe: Awaited<ReturnType<typeof pipeline>>;
+  backend: ModelBackend;
+}
+
+const pipelineCache = new Map<string, CachedPipeline>();
+const loadingPromises = new Map<string, Promise<CachedPipeline>>();
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface EmbeddingPipelineOptions {
@@ -53,26 +65,13 @@ export interface EmbeddingPipeline {
   modelId: string;
   /** Embedding dimension produced by this model */
   dim: number;
-  /** Release resources held by the underlying pipeline */
+  /** Whether this pipeline was served from cache (no model load occurred) */
+  cached: boolean;
+  /** Release resources held by the underlying pipeline (no-op with pipeline cache) */
   dispose(): Promise<void>;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-/**
- * Extract a flat Float32Array from a pipeline Tensor output.
- * Transformers.js returns a Tensor; we access .data for the raw values.
- */
-function extractEmbedding(output: unknown): Float32Array {
-  if (output && typeof output === 'object' && 'data' in output) {
-    return (output as { data: Float32Array }).data;
-  }
-  if (output && typeof output === 'object' && 'tolist' in output) {
-    const nested = (output as { tolist: () => number[][] }).tolist();
-    return new Float32Array(nested.flat());
-  }
-  throw new Error(`Unexpected embedding output shape: ${JSON.stringify(output)}`);
-}
 
 function l2Normalize(vec: Float32Array): Float32Array {
   let norm = 0;
@@ -99,58 +98,110 @@ export async function createEmbeddingPipeline(
   options: EmbeddingPipelineOptions = {}
 ): Promise<EmbeddingPipeline> {
   const model = MODEL_REGISTRY[modelType];
-  const cb = options.progressCallback ?? createDownloadProgressCallback(model.id);
 
-  // Set cache dir BEFORE first pipeline() call — this is critical
-  env.cacheDir = resolveModelCachePath();
-  env.allowRemoteModels = true;
-
-  let pipe: Awaited<ReturnType<typeof pipeline>>;
-  let backend: ModelBackend;
-
-  // Attempt WebGPU first
-  try {
-    pipe = await pipeline('feature-extraction', model.id, {
-      device: 'webgpu',
-      dtype: 'fp32',
-      progress_callback: cb,
-    });
-    backend = 'webgpu';
-    console.error(`[model-router] Using WebGPU for ${model.id}`);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[model-router] WebGPU unavailable: ${msg}`);
-    console.error(`[model-router] Falling back to CPU (q8) for ${model.id}`);
-
-    pipe = await pipeline('feature-extraction', model.id, {
-      device: 'cpu',
-      dtype: 'q8',
-      progress_callback: cb,
-    });
-    backend = 'cpu';
-    console.error(`[model-router] Using CPU for ${model.id}`);
+  // Check cache for an already-loaded pipeline with this model ID
+  const existingCached = pipelineCache.get(model.id);
+  if (existingCached) {
+    return buildPipelineWrapper(existingCached.pipe, existingCached.backend, model, true);
   }
 
+  // Check for an in-flight load (handles concurrent callers in library mode)
+  const existingPromise = loadingPromises.get(model.id);
+  if (existingPromise) {
+    const cached = await existingPromise;
+    return buildPipelineWrapper(cached.pipe, cached.backend, model, true);
+  }
+
+  // Fresh load — run WebGPU→CPU fallback logic
+  const loadPromise = (async (): Promise<CachedPipeline> => {
+    const cb = options.progressCallback ?? createDownloadProgressCallback(model.id);
+
+    // Set cache dir BEFORE first pipeline() call — this is critical
+    env.cacheDir = resolveModelCachePath();
+    env.allowRemoteModels = true;
+
+    let pipe: Awaited<ReturnType<typeof pipeline>>;
+    let backend: ModelBackend;
+
+    try {
+      pipe = await pipeline('feature-extraction', model.id, {
+        device: 'webgpu',
+        dtype: 'fp32',
+        progress_callback: cb,
+      });
+      backend = 'webgpu';
+      console.error(`[model-router] Using WebGPU for ${model.id}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[model-router] WebGPU unavailable: ${msg}`);
+      console.error(`[model-router] Falling back to CPU (q8) for ${model.id}`);
+
+      pipe = await pipeline('feature-extraction', model.id, {
+        device: 'cpu',
+        dtype: 'q8',
+        progress_callback: cb,
+      });
+      backend = 'cpu';
+      console.error(`[model-router] Using CPU for ${model.id}`);
+    }
+
+    const cached: CachedPipeline = { pipe, backend };
+    pipelineCache.set(model.id, cached);
+    return cached;
+  })();
+
+  loadingPromises.set(model.id, loadPromise);
+  try {
+    const cached = await loadPromise;
+    return buildPipelineWrapper(cached.pipe, cached.backend, model, false);
+  } finally {
+    loadingPromises.delete(model.id);
+  }
+}
+
+function buildPipelineWrapper(
+  pipe: Awaited<ReturnType<typeof pipeline>>,
+  backend: ModelBackend,
+  model: (typeof MODEL_REGISTRY)[ModelType],
+  cached: boolean,
+): EmbeddingPipeline {
   return {
     backend,
     modelId: model.id,
     dim: model.dim,
+    cached,
 
     async embed(texts: string[]): Promise<Float32Array[]> {
-      const outputs = await Promise.all(
-        texts.map((text) => pipe(text, { pooling: 'mean', normalize: true }))
-      );
-      return outputs.map((output) => {
-        const raw = extractEmbedding(output);
-        const truncated = new Float32Array(raw.buffer, raw.byteOffset, model.dim);
-        return l2Normalize(new Float32Array(truncated));
-      });
+      if (texts.length === 0) return [];
+
+      // Single batched ONNX forward pass instead of N individual calls
+      const fePipe = pipe as unknown as FEPipeline;
+      const output = await fePipe(texts, { pooling: 'mean', normalize: true });
+      const data = (output as { data: Float32Array }).data;
+      const nativeDim = model.nativeDim;
+
+      const results: Float32Array[] = [];
+      for (let i = 0; i < texts.length; i++) {
+        const offset = i * nativeDim;
+        // Truncate from nativeDim (1024) to dim (768) via Matryoshka, then re-normalize
+        const truncated = new Float32Array(data.buffer, data.byteOffset + offset * 4, model.dim);
+        results.push(l2Normalize(new Float32Array(truncated)));
+      }
+      return results;
     },
 
     async dispose(): Promise<void> {
-      if (pipe && typeof (pipe as { dispose?: () => Promise<void> }).dispose === 'function') {
-        await (pipe as { dispose: () => Promise<void> }).dispose();
-      }
+      // no-op — actual cleanup happens via releaseAllPipelines()
     },
   };
+}
+
+/** Release all cached ONNX sessions. Call at end of index/query commands. */
+export async function releaseAllPipelines(): Promise<void> {
+  for (const [, cached] of pipelineCache) {
+    const p = cached.pipe as { dispose?: () => Promise<void> };
+    if (typeof p.dispose === 'function') await p.dispose();
+  }
+  pipelineCache.clear();
+  loadingPromises.clear();
 }
