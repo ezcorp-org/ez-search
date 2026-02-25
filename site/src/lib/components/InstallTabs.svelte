@@ -5,10 +5,10 @@
 	let copied = $state(false);
 
 	const commands: Record<Pm, string> = {
-		npm: 'npm install -g ez-search',
-		yarn: 'yarn global add ez-search',
-		pnpm: 'pnpm add -g ez-search',
-		bun: 'bun add -g ez-search',
+		npm: 'npm install -g @ez-corp/ez-search',
+		yarn: 'yarn global add @ez-corp/ez-search',
+		pnpm: 'pnpm add -g @ez-corp/ez-search',
+		bun: 'bun add -g @ez-corp/ez-search',
 	};
 
 	const pms: Pm[] = ['npm', 'yarn', 'pnpm', 'bun'];

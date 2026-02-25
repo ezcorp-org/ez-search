@@ -23,13 +23,13 @@ Built as a contextual retrieval engine for AI coding assistants like Claude Code
 ## Installation
 
 ```bash
-npm install -g ez-search
+npm install -g @ez-corp/ez-search
 # or
-yarn global add ez-search
+yarn global add @ez-corp/ez-search
 # or
-pnpm add -g ez-search
+pnpm add -g @ez-corp/ez-search
 # or
-bun add -g ez-search
+bun add -g @ez-corp/ez-search
 ```
 
 Or from source:
