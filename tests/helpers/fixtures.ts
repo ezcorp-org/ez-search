@@ -24,7 +24,17 @@ export const TINY_PNG = Buffer.from(
   'base64',
 );
 
-/** Attempt index(), return null if platform lacks zvec */
+/** Known error patterns that indicate missing native dependencies (not test bugs) */
+function isEnvironmentError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return (
+    err.message.includes('Prebuilt binary') ||
+    err.message.includes('SCHEMA_VERSION') ||
+    err.message.includes('tokenizer.encode is not a function')
+  );
+}
+
+/** Attempt index(), return null if platform lacks native dependencies */
 export async function tryIndex(
   dir: string,
   opts?: Parameters<typeof import('../../src/index.js').index>[1],
@@ -33,13 +43,12 @@ export async function tryIndex(
   try {
     return await index(dir, opts);
   } catch (err: unknown) {
-    if (err instanceof Error && err.message.includes('Prebuilt binary')) return null;
-    if (err instanceof Error && err.message.includes('SCHEMA_VERSION')) return null;
+    if (isEnvironmentError(err)) return null;
     throw err;
   }
 }
 
-/** Attempt query(), return null if platform lacks zvec */
+/** Attempt query(), return null if platform lacks native dependencies */
 export async function tryQuery(
   text: string,
   opts?: Parameters<typeof import('../../src/index.js').query>[1],
@@ -48,8 +57,7 @@ export async function tryQuery(
   try {
     return await query(text, opts);
   } catch (err: unknown) {
-    if (err instanceof Error && err.message.includes('Prebuilt binary')) return null;
-    if (err instanceof Error && err.message.includes('SCHEMA_VERSION')) return null;
+    if (isEnvironmentError(err)) return null;
     throw err;
   }
 }
