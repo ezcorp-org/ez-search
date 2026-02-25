@@ -26,6 +26,7 @@ import * as fsp from 'fs/promises';
 import { rmSync } from 'fs';
 import type { FileType, ScannedFile } from '../../types.js';
 import { type ProgressReporter } from '../progress.js';
+import { EzSearchError } from '../../errors.js';
 
 const BATCH_SIZE = 32;
 
@@ -318,12 +319,13 @@ export interface IndexStats {
 
 export async function runIndex(
   targetPath: string,
-  options: { ignore: boolean; type?: string; quiet?: boolean; clear?: boolean; format?: string }
+  options: { ignore: boolean; type?: string; quiet?: boolean; clear?: boolean; format?: string; _silent?: boolean }
 ): Promise<IndexStats> {
   const startTime = Date.now();
+  const silent = options._silent ?? false;
   const { ProgressReporter } = await import('../progress.js');
   const progress = new ProgressReporter({
-    quiet: options.quiet,
+    quiet: options.quiet || silent,
     json: options.format === 'json',
   });
 
@@ -516,12 +518,7 @@ export async function runIndex(
 
     // 5b. Check for empty directory (no supported files found)
     if (totalFilesScanned === 0) {
-      const { emitError } = await import('../errors.js');
-      const format: 'json' | 'text' = options.format === 'text' ? 'text' : 'json';
-      emitError(
-        { code: 'EMPTY_DIR', message: 'No supported files found in directory', suggestion: 'Ensure the directory contains supported file types (.ts, .js, .py, .go, .rs, .c, .cpp, .md, .txt, .jpg, .png, .webp)' },
-        format
-      );
+      throw new EzSearchError('EMPTY_DIR', 'No supported files found in directory', 'Ensure the directory contains supported file types (.ts, .js, .py, .go, .rs, .c, .cpp, .md, .txt, .jpg, .png, .webp)');
     }
 
     // 6. Optimize, close collections, THEN save manifest
@@ -550,7 +547,7 @@ export async function runIndex(
       storageDir: storagePath,
     };
 
-    if (!options.quiet) {
+    if (!options.quiet && !silent) {
       if (options.format === 'text') {
         const secs = (durationMs / 1000).toFixed(1);
         if (!hasChanges) {
@@ -585,11 +582,8 @@ export async function runIndex(
     return output as IndexStats;
   } catch (err) {
     progress.done();
-    const { emitError } = await import('../errors.js');
+    if (err instanceof EzSearchError) throw err;
     const message = err instanceof Error ? err.message : String(err);
-    return emitError(
-      { code: 'GENERAL_ERROR', message, suggestion: 'Check the error above and retry' },
-      options.format === 'text' ? 'text' : 'json'
-    );
+    throw new EzSearchError('GENERAL_ERROR', message, 'Check the error above and retry');
   }
 }

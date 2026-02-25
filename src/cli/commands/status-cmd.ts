@@ -1,21 +1,40 @@
 /**
- * Status command — shows index state for the current directory.
+ * Status command — shows index state for a project directory.
  *
  * Outputs:
  *   JSON (default): { fileCount, chunkCount, lastIndexed, modelTypes, indexSizeBytes,
  *                     storagePath, staleFileCount, byType }
  *   Text (--format text): compact human-readable summary
  *
- * Error exits:
- *   code 2 — NO_INDEX: no manifest in current directory
- *   code 1 — CORRUPT_MANIFEST: manifest exists but vector storage is missing
+ * Library mode (_silent): returns StatusResult without output.
+ * Throws EzSearchError instead of process.exit for error conditions.
  */
 
 import * as path from 'path';
 import * as fsp from 'fs/promises';
 import { existsSync, statSync } from 'fs';
-import { emitError } from '../errors.js';
+import { EzSearchError } from '../../errors.js';
 import { calcStaleness } from '../../services/staleness.js';
+
+// ── Return types ──────────────────────────────────────────────────────────────
+
+export interface TypeBreakdown {
+  files: number;
+  chunks: number;
+}
+
+export interface StatusResult {
+  fileCount: number;
+  chunkCount: number;
+  lastIndexed: string;
+  modelTypes: string[];
+  indexSizeBytes: number;
+  storagePath: string;
+  staleFileCount: number;
+  byType: Record<'code' | 'text' | 'image', TypeBreakdown>;
+  warning?: string;
+  suggestion?: string;
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -57,11 +76,12 @@ async function calcDirSize(dir: string): Promise<number> {
 
 // ── Main command ───────────────────────────────────────────────────────────────
 
-export async function runStatus(options: { format?: string; ignore?: boolean } = {}): Promise<void> {
-  const format = options.format === 'text' ? 'text' : 'json';
+export async function runStatus(
+  options: { format?: string; ignore?: boolean; _silent?: boolean; _projectDir?: string } = {}
+): Promise<StatusResult> {
+  const silent = options._silent ?? false;
   const useIgnoreFiles = options.ignore !== false; // default true; --no-ignore sets false
-
-  const projectDir = process.cwd();
+  const projectDir = options._projectDir ?? process.cwd();
 
   // 1. Check manifest exists
   const { resolveProjectStoragePath } = await import('../../config/paths.js');
@@ -69,15 +89,7 @@ export async function runStatus(options: { format?: string; ignore?: boolean } =
   const manifestPath = path.join(resolveProjectStoragePath(projectDir), MANIFEST_FILENAME);
 
   if (!existsSync(manifestPath)) {
-    emitError(
-      {
-        code: 'NO_INDEX',
-        message: 'No index found in current directory',
-        suggestion: 'Run: ez-search index .',
-      },
-      format,
-      2
-    );
+    throw new EzSearchError('NO_INDEX', 'No index found in current directory', 'Run: ez-search index .');
   }
 
   // 2. Load manifest
@@ -100,7 +112,7 @@ export async function runStatus(options: { format?: string; ignore?: boolean } =
   const { EXTENSION_MAP } = await import('../../types.js');
 
   type TypeKey = 'code' | 'text' | 'image';
-  const byType: Record<TypeKey, { files: number; chunks: number }> = {
+  const byType: Record<TypeKey, TypeBreakdown> = {
     code: { files: 0, chunks: 0 },
     text: { files: 0, chunks: 0 },
     image: { files: 0, chunks: 0 },
@@ -131,15 +143,7 @@ export async function runStatus(options: { format?: string; ignore?: boolean } =
 
   if (!existsSync(storagePath) && !warning) {
     // Manifest exists but vector storage is missing — corrupt state
-    emitError(
-      {
-        code: 'CORRUPT_MANIFEST',
-        message: 'Manifest exists but vector storage is missing',
-        suggestion: 'Run: ez-search index --clear .',
-      },
-      format,
-      1
-    );
+    throw new EzSearchError('CORRUPT_MANIFEST', 'Manifest exists but vector storage is missing', 'Run: ez-search index --clear .');
   }
 
   // 6. Calculate index size
@@ -148,35 +152,42 @@ export async function runStatus(options: { format?: string; ignore?: boolean } =
   // 7. Calculate staleness
   const staleFileCount = await calcStaleness(projectDir, manifest, useIgnoreFiles);
 
-  // 8. Output
-  if (format === 'text') {
-    const lines: string[] = [
-      `Index: ${storagePath}`,
-      `Files: ${fileCount} (code: ${byType.code.files}, text: ${byType.text.files}, image: ${byType.image.files})`,
-      `Chunks: ${chunkCount}`,
-      `Last indexed: ${lastIndexed}`,
-      `Index size: ${formatBytes(indexSizeBytes)}`,
-      `Stale files: ${staleFileCount}`,
-    ];
-    if (warning) {
-      lines.push(`Warning: ${warning}`);
-    }
-    console.log(lines.join('\n'));
-  } else {
-    const output: Record<string, unknown> = {
-      fileCount,
-      chunkCount,
-      lastIndexed,
-      modelTypes,
-      indexSizeBytes,
-      storagePath,
-      staleFileCount,
-      byType,
-    };
-    if (warning) {
-      output['warning'] = warning;
-      output['suggestion'] = warningSuggestion;
-    }
-    console.log(JSON.stringify(output));
+  // 8. Build result
+  const result: StatusResult = {
+    fileCount,
+    chunkCount,
+    lastIndexed,
+    modelTypes,
+    indexSizeBytes,
+    storagePath,
+    staleFileCount,
+    byType,
+  };
+  if (warning) {
+    result.warning = warning;
+    result.suggestion = warningSuggestion;
   }
+
+  // 9. CLI Output (skipped in library mode)
+  if (!silent) {
+    const format = options.format === 'text' ? 'text' : 'json';
+    if (format === 'text') {
+      const lines: string[] = [
+        `Index: ${storagePath}`,
+        `Files: ${fileCount} (code: ${byType.code.files}, text: ${byType.text.files}, image: ${byType.image.files})`,
+        `Chunks: ${chunkCount}`,
+        `Last indexed: ${lastIndexed}`,
+        `Index size: ${formatBytes(indexSizeBytes)}`,
+        `Stale files: ${staleFileCount}`,
+      ];
+      if (warning) {
+        lines.push(`Warning: ${warning}`);
+      }
+      console.log(lines.join('\n'));
+    } else {
+      console.log(JSON.stringify(result));
+    }
+  }
+
+  return result;
 }
