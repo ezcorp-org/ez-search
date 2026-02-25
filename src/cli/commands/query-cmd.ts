@@ -183,7 +183,7 @@ export async function runQuery(
     } catch (err) {
       if (!silent) process.stderr.write(`[query] code pipeline error: ${err instanceof Error ? err.message : String(err)}\n`);
     } finally {
-      if (pipe) await pipe.dispose();
+      if (pipe) await pipe.dispose(); // no-op with pipeline cache
     }
   }
 
@@ -191,8 +191,10 @@ export async function runQuery(
     // Text: Qwen3 embedding with instruct prefix, query col-768
     let pipe: Awaited<ReturnType<typeof createEmbeddingPipeline>> | null = null;
     try {
-      if (!silent) process.stderr.write(process.stderr.isTTY ? '\r\x1b[Ktext: loading model...' : 'text: loading model...\n');
       pipe = await createEmbeddingPipeline('text');
+      if (!pipe.cached && !silent) {
+        process.stderr.write(process.stderr.isTTY ? '\r\x1b[Ktext: loading model...' : 'text: loading model...\n');
+      }
       if (!silent && process.stderr.isTTY) process.stderr.write('\r\x1b[K');
       const prefixedQuery = `Instruct: Given a search query, retrieve relevant text passages\nQuery: ${text}`;
       const [queryEmbedding] = await pipe.embed([prefixedQuery]);
@@ -209,7 +211,7 @@ export async function runQuery(
     } catch (err) {
       if (!silent) process.stderr.write(`[query] text pipeline error: ${err instanceof Error ? err.message : String(err)}\n`);
     } finally {
-      if (pipe) await pipe.dispose();
+      if (pipe) await pipe.dispose(); // no-op with pipeline cache
     }
   }
 
@@ -367,5 +369,7 @@ export async function runQuery(
   } finally {
     col768.close();
     if (col512) col512.close();
+    const { releaseAllPipelines } = await import('../../services/model-router.js');
+    await releaseAllPipelines();
   }
 }
