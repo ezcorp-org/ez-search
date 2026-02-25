@@ -405,6 +405,24 @@ export const fileTypeGroups: FileTypeGroup[] = [
   },
 ];
 
+// ── Install Commands ────────────────────────────────────────────────────────
+
+type Pm = 'npm' | 'yarn' | 'pnpm' | 'bun';
+
+export const globalInstallCommands: Record<Pm, string> = {
+  npm: 'npm install -g @ez-corp/ez-search',
+  yarn: 'yarn global add @ez-corp/ez-search',
+  pnpm: 'pnpm add -g @ez-corp/ez-search',
+  bun: 'bun add -g @ez-corp/ez-search',
+};
+
+export const localInstallCommands: Record<Pm, string> = {
+  npm: 'npm install @ez-corp/ez-search',
+  yarn: 'yarn add @ez-corp/ez-search',
+  pnpm: 'pnpm add @ez-corp/ez-search',
+  bun: 'bun add @ez-corp/ez-search',
+};
+
 // ── Static Content ──────────────────────────────────────────────────────────
 
 export const quickStartSteps = [
