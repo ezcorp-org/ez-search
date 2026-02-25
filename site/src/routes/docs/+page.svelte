@@ -6,6 +6,7 @@
 	import CodeBlock from '$lib/components/docs/CodeBlock.svelte';
 	import FlagTable from '$lib/components/docs/FlagTable.svelte';
 	import ParamTable from '$lib/components/docs/ParamTable.svelte';
+	import InstallTabs from '$lib/components/InstallTabs.svelte';
 	import {
 		cliCommands,
 		libraryFunctions,
@@ -16,6 +17,8 @@
 		storageContent,
 		errorHandlingExample,
 		builtInExclusions,
+		globalInstallCommands,
+		localInstallCommands,
 	} from '$lib/data/docs-content';
 </script>
 
@@ -78,14 +81,14 @@
 		<!-- ── Installation ─────────────────────────────────────────── -->
 		<DocsSection id="installation" title="Installation">
 			<p class="text-body mb-4">Install ez-search globally to use the CLI, or as a project dependency for the library API.</p>
-			<div class="space-y-3">
+			<div class="space-y-6">
 				<div>
 					<p class="text-sm text-muted mb-2">Global (CLI)</p>
-					<CodeBlock code="npm install -g @ez-corp/ez-search" />
+					<InstallTabs commands={globalInstallCommands} />
 				</div>
 				<div>
 					<p class="text-sm text-muted mb-2">Project dependency (Library)</p>
-					<CodeBlock code="npm install @ez-corp/ez-search" />
+					<InstallTabs commands={localInstallCommands} />
 				</div>
 			</div>
 			<p class="text-sm text-muted mt-4">Requires Node.js >= 20. ESM only.</p>

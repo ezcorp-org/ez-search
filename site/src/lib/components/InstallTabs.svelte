@@ -1,15 +1,20 @@
 <script lang="ts">
 	type Pm = 'npm' | 'yarn' | 'pnpm' | 'bun';
 
-	let active: Pm = $state('npm');
-	let copied = $state(false);
+	interface Props {
+		commands?: Record<Pm, string>;
+	}
 
-	const commands: Record<Pm, string> = {
+	const defaultCommands: Record<Pm, string> = {
 		npm: 'npm install -g @ez-corp/ez-search',
 		yarn: 'yarn global add @ez-corp/ez-search',
 		pnpm: 'pnpm add -g @ez-corp/ez-search',
 		bun: 'bun add -g @ez-corp/ez-search',
 	};
+
+	let { commands = defaultCommands }: Props = $props();
+	let active: Pm = $state('npm');
+	let copied = $state(false);
 
 	const pms: Pm[] = ['npm', 'yarn', 'pnpm', 'bun'];
 
