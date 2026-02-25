@@ -1,34 +1,28 @@
 /**
- * Shared structured error utility for all CLI commands.
+ * CLI error formatting — converts EzSearchError to formatted output + exit.
  *
  * JSON errors go to stdout (same channel as normal output for agent parsing).
  * Text errors go to stderr.
  */
 
-export type ErrorCode =
-  | 'NO_INDEX'
-  | 'EMPTY_DIR'
-  | 'UNSUPPORTED_TYPE'
-  | 'CORRUPT_MANIFEST'
-  | 'GENERAL_ERROR';
+import { EzSearchError } from '../errors.js';
+
+export type { ErrorCode } from '../errors.js';
+export { EzSearchError };
 
 export interface StructuredError {
   error: true;
-  code: ErrorCode;
+  code: string;
   message: string;
   suggestion: string;
 }
 
 /**
  * Emit a structured error and exit the process.
- *
- * @param opts      - Error details
- * @param format    - 'json' writes structured JSON to stdout; 'text' writes human-readable to stderr
- * @param exitCode  - Exit code (defaults to 1)
- * @returns never   - Control flow ends here
+ * Used by CLI commands only — library functions throw EzSearchError instead.
  */
 export function emitError(
-  opts: { code: ErrorCode; message: string; suggestion: string },
+  opts: { code: string; message: string; suggestion: string },
   format: 'json' | 'text',
   exitCode = 1
 ): never {

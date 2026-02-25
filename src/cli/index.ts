@@ -28,7 +28,16 @@ Examples:
   $ ez-search index src/ --no-ignore           Index src/ including gitignored files`)
   .action(async (targetPath: string, options: { ignore: boolean; type?: string; quiet?: boolean; clear?: boolean; format?: string }) => {
     const { runIndex } = await import('./commands/index-cmd.js');
-    await runIndex(targetPath, options);
+    try {
+      await runIndex(targetPath, options);
+    } catch (err) {
+      const { EzSearchError } = await import('../errors.js');
+      if (err instanceof EzSearchError) {
+        const { emitError } = await import('./errors.js');
+        emitError({ code: err.code, message: err.message, suggestion: err.suggestion }, options.format === 'text' ? 'text' : 'json');
+      }
+      throw err;
+    }
   });
 
 program
@@ -48,7 +57,16 @@ Examples:
   $ ez-search query "test" --no-auto-index     Fail if no index exists`)
   .action(async (text: string, options: { format?: string; topK: string; dir?: string; threshold?: string; type?: string; autoIndex?: boolean }) => {
     const { runQuery } = await import('./commands/query-cmd.js');
-    await runQuery(text, options);
+    try {
+      await runQuery(text, options);
+    } catch (err) {
+      const { EzSearchError } = await import('../errors.js');
+      if (err instanceof EzSearchError) {
+        const { emitError } = await import('./errors.js');
+        emitError({ code: err.code, message: err.message, suggestion: err.suggestion }, options.format === 'text' ? 'text' : 'json');
+      }
+      throw err;
+    }
   });
 
 program
@@ -62,7 +80,18 @@ Examples:
   $ ez-search status --format text             Show human-readable summary`)
   .action(async (options: { format?: string; ignore: boolean }) => {
     const { runStatus } = await import('./commands/status-cmd.js');
-    await runStatus(options);
+    try {
+      await runStatus(options);
+    } catch (err) {
+      const { EzSearchError } = await import('../errors.js');
+      if (err instanceof EzSearchError) {
+        const { emitError } = await import('./errors.js');
+        const format: 'json' | 'text' = options.format === 'text' ? 'text' : 'json';
+        const exitCode = err.code === 'NO_INDEX' ? 2 : 1;
+        emitError({ code: err.code, message: err.message, suggestion: err.suggestion }, format, exitCode);
+      }
+      throw err;
+    }
   });
 
 program.parse();
