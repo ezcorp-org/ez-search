@@ -45,6 +45,27 @@ export const GROUND_TRUTH: GroundTruthQuery[] = [
     type: 'code',
     relevant: ['config.yaml'],
   },
+  // Identifier-heavy queries BM25 should excel at
+  {
+    query: 'hashPassword SALT_ROUNDS',
+    type: 'code',
+    relevant: ['auth.ts'],
+  },
+  {
+    query: 'MAX_RETRIES BASE_DELAY_MS',
+    type: 'code',
+    relevant: ['http-client.ts'],
+  },
+  {
+    query: 'TOKEN_EXPIRY refreshToken',
+    type: 'code',
+    relevant: ['auth.ts'],
+  },
+  {
+    query: 'AbortController clearTimeout',
+    type: 'code',
+    relevant: ['http-client.ts'],
+  },
 
   // ── Text queries ─────────────────────────────────────────────────────────
   {

@@ -49,13 +49,16 @@ program
   .option('--threshold <score>', 'minimum relevance score (0-1) to include')
   .option('--type <type>', 'search specific type only: code|text|image')
   .option('--no-auto-index', 'disable automatic indexing when no index exists')
+  .option('--mode <mode>', 'search mode: hybrid (default), semantic, or keyword')
   .addHelpText('after', `
 Examples:
-  $ ez-search query "authentication logic"     Semantic search (auto-indexes if needed)
+  $ ez-search query "authentication logic"     Hybrid search (auto-indexes if needed)
   $ ez-search query "db connections" --format json --type code --top-k 5
   $ ez-search query "error handling" --threshold 0.5 --dir src/
-  $ ez-search query "test" --no-auto-index     Fail if no index exists`)
-  .action(async (text: string, options: { format?: string; topK: string; dir?: string; threshold?: string; type?: string; autoIndex?: boolean }) => {
+  $ ez-search query "test" --no-auto-index     Fail if no index exists
+  $ ez-search query "handleUserAuth" --mode keyword   Exact identifier search
+  $ ez-search query "auth logic" --mode semantic      Pure vector search`)
+  .action(async (text: string, options: { format?: string; topK: string; dir?: string; threshold?: string; type?: string; autoIndex?: boolean; mode?: string }) => {
     const { runQuery } = await import('./commands/query-cmd.js');
     try {
       await runQuery(text, options);

@@ -42,6 +42,12 @@ describe('code search accuracy', () => {
   });
 });
 
+describe('hybrid code search accuracy', () => {
+  test('hybrid MRR >= semantic MRR', () => {
+    expect(result.codeHybrid.aggregate.mrr).toBeGreaterThanOrEqual(result.code.aggregate.mrr);
+  });
+});
+
 describe('text search accuracy', () => {
   test(`MRR >= ${THRESHOLDS.text.mrr}`, () => {
     expect(result.text.aggregate.mrr).toBeGreaterThanOrEqual(THRESHOLDS.text.mrr);

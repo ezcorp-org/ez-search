@@ -9,6 +9,7 @@ Built as a contextual retrieval engine for AI coding assistants like Claude Code
 ## Features
 
 - **Three search pipelines** -- code, text/documents, and images, each with a specialized embedding model
+- **Hybrid search** -- combines semantic vector search with BM25 keyword matching (via code-aware tokenization) for best-of-both-worlds retrieval; also supports pure semantic or keyword-only modes
 - **Incremental indexing** -- only re-embeds files that have changed (mtime + content hash)
 - **WebGPU acceleration** with automatic CPU fallback
 - **Respects .gitignore and .cursorignore** -- skips `node_modules`, `dist`, lockfiles, etc. by default
@@ -90,14 +91,18 @@ ez-search query "database connection pooling"
 ez-search query "how are users authenticated" --format text
 ez-search query "parse config" -k 5 --dir src/config
 ez-search query "validation logic" --threshold 0.7
+ez-search query "handleUserAuth" --mode keyword    # exact identifier search
+ez-search query "auth logic" --mode semantic       # pure vector search
 ```
 
 | Flag | Description |
 |------|-------------|
 | `-k, --top-k <n>` | Number of results to return. Default: `10`. |
-| `--type <code\|text>` | Search a specific pipeline only. |
+| `--type <code\|text\|image>` | Search a specific pipeline only. |
 | `--dir <path>` | Scope results to a subdirectory. |
 | `--threshold <score>` | Minimum relevance score (0-1) to include in results. |
+| `--mode <hybrid\|semantic\|keyword>` | Search mode. `hybrid` (default) fuses vector + BM25 results. `semantic` uses vector search only. `keyword` uses BM25 keyword matching only. |
+| `--no-auto-index` | Disable automatic indexing when no index exists. |
 | `--format <json\|text>` | Output format. Default: `json`. |
 
 JSON output returns a grouped envelope:
@@ -107,6 +112,7 @@ JSON output returns a grouped envelope:
   "query": "database connection",
   "totalIndexed": 142,
   "searchScope": ".",
+  "mode": "hybrid",
   "code": [
     {
       "file": "src/db/pool.ts",
@@ -178,6 +184,8 @@ Models are lazy-loaded -- only the model needed for the current operation is loa
 **Incremental indexing:** A manifest at `.ez-search/manifest.json` tracks file size, mtime, and content hash (SHA-256). On subsequent runs, only changed files are re-embedded. Chunk-level deduplication further reduces work when only part of a file changes.
 
 **Vector storage:** Embeddings are stored in Zvec (`@zvec/zvec`), an in-process C++ vector database. Code and text share a 768-dimension collection; images use a separate 512-dimension collection. Both use cosine similarity for search.
+
+**Lexical index:** A BM25 keyword index (powered by MiniSearch) is built alongside the vector index at `.ez-search/lexical-index.json`. It uses a code-aware tokenizer that splits `camelCase`, `snake_case`, `kebab-case`, and `dot.notation` identifiers into sub-tokens. In hybrid mode (the default), results from both vector and keyword search are fused using Reciprocal Rank Fusion (RRF).
 
 ## Configuration
 
