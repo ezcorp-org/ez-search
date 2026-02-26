@@ -128,6 +128,33 @@ describe("chunkFile", () => {
     expect(chunks[0].lineEnd).toBe(10);
   });
 
+  test("empty file input returns single chunk with zero tokens", () => {
+    const chunks = chunkFile("", tokenizer as any);
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].tokenCount).toBe(0);
+    expect(chunks[0].lineStart).toBe(1);
+    expect(chunks[0].lineEnd).toBe(1);
+    expect(chunks[0].chunkIndex).toBe(0);
+  });
+
+  test("single-line file produces single chunk from line 1 to 1", () => {
+    const text = "hello world foo bar";
+    const chunks = chunkFile(text, tokenizer as any);
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].lineStart).toBe(1);
+    expect(chunks[0].lineEnd).toBe(1);
+    expect(chunks[0].chunkIndex).toBe(0);
+  });
+
+  test("file with no newlines handles correctly", () => {
+    const words = Array.from({ length: 50 }, (_, i) => `word${i}`);
+    const text = words.join(" "); // no newlines at all
+    const chunks = chunkFile(text, tokenizer as any);
+    expect(chunks.length).toBeGreaterThanOrEqual(1);
+    expect(chunks[0].lineStart).toBe(1);
+    expect(chunks[0].lineEnd).toBe(1); // single line, no newlines
+  });
+
   test("multi-line large text has correct lineStart/lineEnd across chunks", () => {
     // 50 words per line, 30 lines = 1500 words total -> multiple chunks
     const lines = Array.from({ length: 30 }, (_, i) =>

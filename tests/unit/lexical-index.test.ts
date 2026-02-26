@@ -192,6 +192,20 @@ describe('LexicalIndex', () => {
     expect(idx.size).toBe(1);
   });
 
+  test('fromJSON with wrong version throws', () => {
+    const badJson = JSON.stringify({ version: 999, minisearch: {} });
+    expect(() => LexicalIndex.fromJSON(badJson)).toThrow('Unsupported lexical index version');
+  });
+
+  test('empty query string returns empty results', () => {
+    const idx = new LexicalIndex();
+    idx.addDocument('doc1', 'function handleUserAuth() {}', {
+      filePath: 'src/auth.ts', chunkIndex: 0, lineStart: 1, lineEnd: 5,
+    });
+    const results = idx.query('', 10);
+    expect(results).toEqual([]);
+  });
+
   test('dir filter works in query', () => {
     const idx = new LexicalIndex();
     idx.addDocument('doc1', 'function alpha() {}', {

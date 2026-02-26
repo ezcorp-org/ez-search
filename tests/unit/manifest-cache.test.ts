@@ -67,6 +67,14 @@ describe('makeChunkId', () => {
   test('differs for different indices', () => {
     expect(makeChunkId('a.ts', 0)).not.toBe(makeChunkId('a.ts', 1));
   });
+
+  test('stability — same input always produces same ID across calls', () => {
+    const id1 = makeChunkId('src/services/auth.ts', 42);
+    const id2 = makeChunkId('src/services/auth.ts', 42);
+    const id3 = makeChunkId('src/services/auth.ts', 42);
+    expect(id1).toBe(id2);
+    expect(id2).toBe(id3);
+  });
 });
 
 describe('loadManifest', () => {
@@ -96,6 +104,14 @@ describe('loadManifest', () => {
     writeFile(tmpDir, path.join('.ez-search', MANIFEST_FILENAME), bad);
     const manifest = loadManifest(tmpDir);
     expect(manifest).toEqual({ version: MANIFEST_VERSION, files: {} });
+  });
+
+  test('version mismatch returns fresh manifest with current MANIFEST_VERSION', () => {
+    const old = JSON.stringify({ version: MANIFEST_VERSION - 1, files: { 'old.ts': { mtime: 1, size: 1, hash: 'x', chunks: [] } } });
+    writeFile(tmpDir, path.join('.ez-search', MANIFEST_FILENAME), old);
+    const manifest = loadManifest(tmpDir);
+    expect(manifest.version).toBe(MANIFEST_VERSION);
+    expect(manifest.files).toEqual({});
   });
 
   test('returns parsed manifest for valid file', () => {

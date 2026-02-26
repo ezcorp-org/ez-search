@@ -201,6 +201,26 @@ describe('filterAndCollapse', () => {
     expect(collapsed[1].score).toBe(0.8);
   });
 
+  test('dir filter with ./ prefix normalizes correctly', () => {
+    const results = [
+      makeResult({ filePath: 'src/foo.ts', chunkIndex: 0 }),
+      makeResult({ filePath: 'lib/bar.ts', chunkIndex: 0 }),
+    ];
+    const collapsed = filterAndCollapse(results, acceptAll, { dir: './src', topK: 10 });
+    expect(collapsed).toHaveLength(1);
+    expect(collapsed[0].filePath).toBe('src/foo.ts');
+  });
+
+  test('dir filter with trailing / normalizes correctly', () => {
+    const results = [
+      makeResult({ filePath: 'src/foo.ts', chunkIndex: 0 }),
+      makeResult({ filePath: 'lib/bar.ts', chunkIndex: 0 }),
+    ];
+    const collapsed = filterAndCollapse(results, acceptAll, { dir: 'src/', topK: 10 });
+    expect(collapsed).toHaveLength(1);
+    expect(collapsed[0].filePath).toBe('src/foo.ts');
+  });
+
   test('non-adjacent chunks from same file stay separate', () => {
     const results = [
       makeResult({ filePath: 'src/foo.ts', chunkIndex: 0, score: 0.9 }),

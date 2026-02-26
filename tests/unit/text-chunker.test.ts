@@ -1,6 +1,7 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect, mock } from "bun:test";
 import {
   chunkTextFile,
+  extractPdfText,
   MAX_CHUNK_CHARS,
   MIN_CHUNK_CHARS,
 } from "../../src/services/text-chunker";
@@ -116,5 +117,55 @@ describe("chunkTextFile", () => {
     for (const chunk of chunks) {
       expect(chunk.charCount).toBe(chunk.text.length);
     }
+  });
+
+  test("oversized single sentence with no '. ' boundaries triggers hard-split", () => {
+    // A single sentence > MAX_CHUNK_CHARS with no ". " or ".\n" boundaries
+    const text = "abcdefgh".repeat(Math.ceil(MAX_CHUNK_CHARS / 8) * 3); // ~4800 chars, no periods
+    expect(text.length).toBeGreaterThan(MAX_CHUNK_CHARS);
+    expect(text).not.toContain(". ");
+    const chunks = chunkTextFile(text);
+    expect(chunks.length).toBeGreaterThanOrEqual(2);
+    for (const chunk of chunks) {
+      expect(chunk.text.length).toBeLessThanOrEqual(MAX_CHUNK_CHARS);
+    }
+  });
+
+  test("all chunks below MIN_CHUNK_CHARS except sole chunk retained", () => {
+    // Create text that produces a single chunk under MIN_CHUNK_CHARS — it should be kept
+    const text = "Short text here."; // well under MIN_CHUNK_CHARS
+    expect(text.length).toBeLessThan(MIN_CHUNK_CHARS);
+    const chunks = chunkTextFile(text);
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].text).toBe(text);
+  });
+});
+
+describe("extractPdfText", () => {
+  test("calls pdf-parse and returns extracted text", async () => {
+    const fakeText = "Hello from PDF";
+    mock.module("pdf-parse", () => ({
+      PDFParse: class {
+        async getText() { return { text: fakeText }; }
+        async destroy() {}
+      },
+    }));
+
+    // Re-import to pick up the mock
+    const { extractPdfText: extract } = await import("../../src/services/text-chunker");
+    const result = await extract(Buffer.from("fake-pdf-bytes"));
+    expect(result).toBe(fakeText);
+  });
+
+  test("throws descriptive error when pdf-parse fails", async () => {
+    mock.module("pdf-parse", () => ({
+      PDFParse: class {
+        async getText() { throw new Error("corrupt PDF"); }
+        async destroy() {}
+      },
+    }));
+
+    const { extractPdfText: extract } = await import("../../src/services/text-chunker");
+    await expect(extract(Buffer.from("bad"))).rejects.toThrow("PDF text extraction failed: corrupt PDF");
   });
 });
