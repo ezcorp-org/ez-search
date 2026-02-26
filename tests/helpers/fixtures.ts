@@ -27,10 +27,14 @@ export const TINY_PNG = Buffer.from(
 /** Known error patterns that indicate missing native dependencies (not test bugs) */
 function isEnvironmentError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
+  const m = err.message;
   return (
-    err.message.includes('Prebuilt binary') ||
-    err.message.includes('SCHEMA_VERSION') ||
-    err.message.includes('tokenizer.encode is not a function')
+    m.includes('Prebuilt binary') ||
+    m.includes('SCHEMA_VERSION') ||
+    m.includes('tokenizer.encode is not a function') ||
+    m.includes('cannot open shared object file') ||
+    m.includes('not a function') && m.includes('tokenizer') ||
+    m.includes('Could not dynamically require')
   );
 }
 

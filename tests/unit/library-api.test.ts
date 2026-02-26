@@ -6,19 +6,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
-import { createTempDir, cleanupTempDir, writeFile } from '../helpers/fixtures.js';
-
-/** Helper: attempt index, return null if platform lacks zvec */
-async function tryIndex(dir: string, opts?: Parameters<typeof import('../../src/index.js').index>[1]) {
-  const { index } = await import('../../src/index.js');
-  try {
-    return await index(dir, opts);
-  } catch (err: unknown) {
-    if (err instanceof Error && err.message.includes('Prebuilt binary')) return null;
-    if (err instanceof Error && err.message.includes('SCHEMA_VERSION')) return null;
-    throw err;
-  }
-}
+import { createTempDir, cleanupTempDir, writeFile, tryIndex } from '../helpers/fixtures.js';
 
 describe('Library API', () => {
   let tmpDir: string;
