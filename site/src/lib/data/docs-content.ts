@@ -87,12 +87,15 @@ export const cliCommands: CliCommand[] = [
       { flag: '--threshold <score>', description: 'Minimum relevance score (0-1) to include' },
       { flag: '--type <type>', description: 'Search specific type only: code | text | image' },
       { flag: '--no-auto-index', description: 'Disable automatic indexing when no index exists' },
+      { flag: '--mode <mode>', description: 'Search mode: hybrid (default), semantic, or keyword', default: 'hybrid' },
       { flag: '--format <mode>', description: 'Output format: json (default) or text', default: 'json' },
     ],
     examples: [
       { label: 'Search for authentication logic', code: 'ez-search query "authentication logic"' },
       { label: 'Top 5 code results in src/', code: 'ez-search query "error handling" --type code -k 5 --dir src' },
       { label: 'High-confidence results only', code: 'ez-search query "database connection" --threshold 0.7' },
+      { label: 'Exact identifier search', code: 'ez-search query "handleUserAuth" --mode keyword' },
+      { label: 'Pure vector search', code: 'ez-search query "auth logic" --mode semantic' },
     ],
   },
   {
@@ -173,6 +176,7 @@ console.log(\`Indexed \${stats.filesIndexed} files in \${stats.durationMs}ms\`);
       { name: 'options.dir', type: 'string', description: 'Scope to a subdirectory', required: false },
       { name: 'options.threshold', type: 'number', description: 'Minimum relevance 0-1', required: false },
       { name: 'options.type', type: "'code' | 'text' | 'image'", description: 'Search specific type only', required: false },
+      { name: 'options.mode', type: "'hybrid' | 'semantic' | 'keyword'", description: 'Search mode (default: hybrid)', required: false },
       { name: 'options.autoIndex', type: 'boolean', description: 'Auto-index if missing (default: true)', required: false },
     ],
     returnType: 'Promise<QueryResult>',
@@ -266,6 +270,7 @@ export const typeDefinitions: TypeDef[] = [
   query: string;
   totalIndexed: number;
   searchScope: string;
+  mode: SearchMode;
   indexing?: { status: string; filesIndexed: number; durationMs: number };
   stale?: boolean;
   staleFileCount?: number;
@@ -306,6 +311,7 @@ export const typeDefinitions: TypeDef[] = [
   dir?: string;
   threshold?: number;
   type?: 'code' | 'text' | 'image';
+  mode?: SearchMode;
   autoIndex?: boolean;
 }`,
   },
@@ -354,11 +360,16 @@ export const typeDefinitions: TypeDef[] = [
   | 'EMPTY_DIR'
   | 'UNSUPPORTED_TYPE'
   | 'CORRUPT_MANIFEST'
+  | 'INVALID_MODE'
   | 'GENERAL_ERROR';`,
   },
   {
     name: 'FileType',
     code: `type FileType = 'code' | 'text' | 'image';`,
+  },
+  {
+    name: 'SearchMode',
+    code: `type SearchMode = 'hybrid' | 'semantic' | 'keyword';`,
   },
 ];
 
@@ -375,6 +386,7 @@ export const errorCodes: ErrorCodeEntry[] = [
   { code: 'EMPTY_DIR', meaning: 'No supported files found in directory', suggestion: 'Check the path and file extensions' },
   { code: 'UNSUPPORTED_TYPE', meaning: 'Invalid file type filter', suggestion: 'Use "code", "text", or "image"' },
   { code: 'CORRUPT_MANIFEST', meaning: 'Index manifest exists but data is missing', suggestion: 'Re-index with --clear flag' },
+  { code: 'INVALID_MODE', meaning: 'Invalid search mode specified', suggestion: 'Use "hybrid", "semantic", or "keyword"' },
   { code: 'GENERAL_ERROR', meaning: 'Unexpected error during operation', suggestion: 'Check the error message for details' },
 ];
 
@@ -435,10 +447,10 @@ export const storageContent = {
   title: 'Storage',
   description: 'ez-search stores all index data locally in a .ez-search/ directory at the root of your project.',
   structure: `.ez-search/
-├── manifest.json    # File metadata and hashes
-├── code.bin         # Code embedding vectors
-├── text.bin         # Text embedding vectors
-└── image.bin        # Image embedding vectors`,
+├── manifest.json       # File metadata and hashes
+├── lexical-index.json  # BM25 keyword search index
+├── col-768/            # Code + text embedding vectors (768-dim)
+└── col-512/            # Image embedding vectors (512-dim)`,
   notes: [
     'Add .ez-search/ to your .gitignore — it should not be committed.',
     'Delete .ez-search/ to remove all index data. Re-run ez-search index to rebuild.',

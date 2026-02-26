@@ -17,11 +17,16 @@ import { createEmbeddingPipeline, type EmbeddingPipeline } from '../../src/servi
 import { createImageEmbeddingPipeline, createClipTextPipeline, type ImageEmbeddingPipeline, type ClipTextPipeline } from '../../src/services/image-embedder.js';
 import { openProjectCollections, type ProjectCollections } from '../../src/services/vector-db.js';
 import { normalizeResults, normalizeImageResults, filterAndCollapse, filterImageResults } from '../../src/services/query-utils.js';
+import { LexicalIndex } from '../../src/services/lexical-index.js';
+import { rrfFuse } from '../../src/services/hybrid-fusion.js';
+import { fileTypeFromPath } from '../../src/types.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface HarnessResult {
   code: { aggregate: AggregateMetrics; queries: QueryMetrics[] };
+  codeHybrid: { aggregate: AggregateMetrics; queries: QueryMetrics[] };
+  codeKeyword: { aggregate: AggregateMetrics; queries: QueryMetrics[] };
   text: { aggregate: AggregateMetrics; queries: QueryMetrics[] };
   image: { aggregate: AggregateMetrics; queries: QueryMetrics[] };
 }
@@ -32,6 +37,7 @@ interface Pipelines {
   imagePipeline: ImageEmbeddingPipeline;
   clipTextPipeline: ClipTextPipeline;
   tokenizer: Awaited<ReturnType<typeof loadTokenizer>>;
+  lexicalIndex: LexicalIndex;
 }
 
 // ── Corpus layout ─────────────────────────────────────────────────────────────
@@ -54,6 +60,7 @@ async function indexCodeFiles(
   collections: ProjectCollections,
   pipeline: EmbeddingPipeline,
   tokenizer: Awaited<ReturnType<typeof loadTokenizer>>,
+  lexicalIndex: LexicalIndex,
 ): Promise<void> {
   for (const file of CODE_FILES) {
     const content = readFileSync(path.join(CORPUS_DIR, 'code', file), 'utf-8');
@@ -69,6 +76,12 @@ async function indexCodeFiles(
         lineStart: chunk.lineStart,
         lineEnd: chunk.lineEnd,
         chunkText: chunk.text.slice(0, 200),
+      });
+      lexicalIndex.addDocument(id, chunk.text, {
+        filePath: file,
+        chunkIndex: chunk.chunkIndex,
+        lineStart: chunk.lineStart,
+        lineEnd: chunk.lineEnd,
       });
     }
   }
@@ -129,7 +142,7 @@ async function queryCode(
     const prefixed = `Instruct: Given a search query, retrieve relevant code snippets\nQuery: ${q.query}`;
     const [embedding] = await pipeline.embed([prefixed]);
     const raw = collections.col768.query(embedding, 15);
-    const normalized = normalizeResults(raw);
+    const normalized = normalizeResults(raw).filter(r => fileTypeFromPath(r.filePath) === 'code');
     const collapsed = filterAndCollapse(
       normalized,
       (id) => id === pipeline.modelId,
@@ -153,12 +166,99 @@ async function queryText(
     const prefixed = `Instruct: Given a search query, retrieve relevant text passages\nQuery: ${q.query}`;
     const [embedding] = await pipeline.embed([prefixed]);
     const raw = collections.col768.query(embedding, 15);
-    const normalized = normalizeResults(raw);
+    const normalized = normalizeResults(raw).filter(r => fileTypeFromPath(r.filePath) === 'text');
     const collapsed = filterAndCollapse(
       normalized,
       (id) => id === pipeline.modelId,
       { topK: 5 },
     );
+    const retrieved = collapsed.map((r) => r.filePath);
+    results.push(computeQueryMetrics(q.query, retrieved, new Set(q.relevant)));
+  }
+
+  return results;
+}
+
+async function queryCodeHybrid(
+  collections: ProjectCollections,
+  pipeline: EmbeddingPipeline,
+  lexicalIndex: LexicalIndex,
+): Promise<QueryMetrics[]> {
+  const queries = queriesByType('code');
+  const results: QueryMetrics[] = [];
+
+  for (const q of queries) {
+    const prefixed = `Instruct: Given a search query, retrieve relevant code snippets\nQuery: ${q.query}`;
+    const [embedding] = await pipeline.embed([prefixed]);
+    const raw = collections.col768.query(embedding, 15);
+    const normalized = normalizeResults(raw);
+    const semanticFiltered = normalized
+      .filter((r) => r.modelId === pipeline.modelId)
+      .filter((r) => fileTypeFromPath(r.filePath) === 'code');
+
+    const lexResults = lexicalIndex.query(q.query, 15);
+
+    const semanticRanked = semanticFiltered.map((r) => ({
+      id: `${r.filePath}:${r.chunkIndex}`,
+      filePath: r.filePath,
+      chunkIndex: r.chunkIndex,
+      lineStart: r.lineStart,
+      lineEnd: r.lineEnd,
+      chunkText: r.chunkText,
+      score: r.score,
+    }));
+
+    const lexicalRanked = lexResults.map((r) => ({
+      id: r.id,
+      filePath: r.filePath,
+      chunkIndex: r.chunkIndex,
+      lineStart: r.lineStart,
+      lineEnd: r.lineEnd,
+      chunkText: r.chunkText,
+      score: r.score,
+    }));
+
+    const fused = rrfFuse(semanticRanked, lexicalRanked);
+    const fusedNormalized = fused.map((r) => ({
+      filePath: r.filePath,
+      chunkIndex: r.chunkIndex,
+      lineStart: r.lineStart,
+      lineEnd: r.lineEnd,
+      chunkText: r.chunkText,
+      modelId: 'hybrid-rrf',
+      score: r.fusedScore,
+    }));
+
+    const collapsed = filterAndCollapse(fusedNormalized, () => true, { topK: 5 });
+    const retrieved = collapsed.map((r) => r.filePath);
+    results.push(computeQueryMetrics(q.query, retrieved, new Set(q.relevant)));
+  }
+
+  return results;
+}
+
+async function queryCodeKeyword(
+  lexicalIndex: LexicalIndex,
+): Promise<QueryMetrics[]> {
+  const queries = queriesByType('code');
+  const results: QueryMetrics[] = [];
+
+  for (const q of queries) {
+    const lexResults = lexicalIndex.query(q.query, 15);
+
+    // Normalize scores to [0,1]
+    const maxScore = lexResults.length > 0 ? Math.max(...lexResults.map((r) => r.score)) : 1;
+    const normalized = lexResults.map((r) => ({
+      filePath: r.filePath,
+      chunkIndex: r.chunkIndex,
+      lineStart: r.lineStart,
+      lineEnd: r.lineEnd,
+      chunkText: r.chunkText,
+      modelId: 'minisearch-bm25',
+      score: maxScore > 0 ? Math.round((r.score / maxScore) * 10000) / 10000 : 0,
+    }));
+
+    const collapsed = filterAndCollapse(normalized, () => true, { topK: 5 });
     const retrieved = collapsed.map((r) => r.filePath);
     results.push(computeQueryMetrics(q.query, retrieved, new Set(q.relevant)));
   }
@@ -201,7 +301,7 @@ async function loadPipelines(): Promise<Pipelines> {
     loadTokenizer(),
   ]);
   console.error('[harness] All models loaded');
-  return { codePipeline, textPipeline, imagePipeline, clipTextPipeline, tokenizer };
+  return { codePipeline, textPipeline, imagePipeline, clipTextPipeline, tokenizer, lexicalIndex: new LexicalIndex() };
 }
 
 async function disposePipelines(p: Pipelines): Promise<void> {
@@ -231,7 +331,7 @@ export async function runHarness(): Promise<HarnessResult> {
 
     // Index all content types
     console.error('[harness] Indexing code files...');
-    await indexCodeFiles(collections, pipelines.codePipeline, pipelines.tokenizer);
+    await indexCodeFiles(collections, pipelines.codePipeline, pipelines.tokenizer, pipelines.lexicalIndex);
 
     console.error('[harness] Indexing text files...');
     await indexTextFiles(collections, pipelines.textPipeline);
@@ -245,8 +345,14 @@ export async function runHarness(): Promise<HarnessResult> {
     collections.col512.optimize();
 
     // Run queries and compute metrics
-    console.error('[harness] Running code queries...');
+    console.error('[harness] Running code queries (semantic)...');
     const codeResults = await queryCode(collections, pipelines.codePipeline);
+
+    console.error('[harness] Running code queries (hybrid)...');
+    const codeHybridResults = await queryCodeHybrid(collections, pipelines.codePipeline, pipelines.lexicalIndex);
+
+    console.error('[harness] Running code queries (keyword)...');
+    const codeKeywordResults = await queryCodeKeyword(pipelines.lexicalIndex);
 
     console.error('[harness] Running text queries...');
     const textResults = await queryText(collections, pipelines.textPipeline);
@@ -256,6 +362,8 @@ export async function runHarness(): Promise<HarnessResult> {
 
     return {
       code: { aggregate: aggregateMetrics(codeResults), queries: codeResults },
+      codeHybrid: { aggregate: aggregateMetrics(codeHybridResults), queries: codeHybridResults },
+      codeKeyword: { aggregate: aggregateMetrics(codeKeywordResults), queries: codeKeywordResults },
       text: { aggregate: aggregateMetrics(textResults), queries: textResults },
       image: { aggregate: aggregateMetrics(imageResults), queries: imageResults },
     };

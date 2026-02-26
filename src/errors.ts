@@ -10,6 +10,7 @@ export type ErrorCode =
   | 'EMPTY_DIR'
   | 'UNSUPPORTED_TYPE'
   | 'CORRUPT_MANIFEST'
+  | 'INVALID_MODE'
   | 'GENERAL_ERROR';
 
 export class EzSearchError extends Error {

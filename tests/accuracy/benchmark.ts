@@ -102,8 +102,14 @@ async function main() {
   // Per-query details
   console.log('\n=== Per-Query Results ===');
 
-  console.log('\n  Code:');
+  console.log('\n  Code (semantic):');
   printQueryDetails(result.code.queries);
+
+  console.log('\n  Code (hybrid):');
+  printQueryDetails(result.codeHybrid.queries);
+
+  console.log('\n  Code (keyword):');
+  printQueryDetails(result.codeKeyword.queries);
 
   console.log('\n  Text:');
   printQueryDetails(result.text.queries);
@@ -113,7 +119,9 @@ async function main() {
 
   // Aggregates
   console.log('\n=== Aggregate Metrics ===');
-  printAggregate('Code', result.code.aggregate, baseline?.code);
+  printAggregate('Code (semantic)', result.code.aggregate, baseline?.code);
+  printAggregate('Code (hybrid)', result.codeHybrid.aggregate);
+  printAggregate('Code (keyword)', result.codeKeyword.aggregate);
   printAggregate('Text', result.text.aggregate, baseline?.text);
   printAggregate('Image', result.image.aggregate, baseline?.image);
 

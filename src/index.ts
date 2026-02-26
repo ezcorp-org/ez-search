@@ -22,7 +22,7 @@ export type { ErrorCode } from './errors.js';
 export type { IndexStats } from './cli/commands/index-cmd.js';
 export type { QueryResult, CodeQueryResult, TextQueryResult, ImageQueryResult } from './cli/commands/query-cmd.js';
 export type { StatusResult, TypeBreakdown } from './cli/commands/status-cmd.js';
-export type { FileType } from './types.js';
+export type { FileType, SearchMode } from './types.js';
 
 // ── index() ──────────────────────────────────────────────────────────────────
 
@@ -69,6 +69,8 @@ export interface QueryOptions {
   threshold?: number;
   /** Search specific type only */
   type?: 'code' | 'text' | 'image';
+  /** Search mode: hybrid (default), semantic, or keyword */
+  mode?: 'hybrid' | 'semantic' | 'keyword';
   /** Auto-index if no index exists (default: true) */
   autoIndex?: boolean;
 }
@@ -91,6 +93,7 @@ export async function query(
     dir: options.dir,
     threshold: options.threshold !== undefined ? String(options.threshold) : undefined,
     type: options.type,
+    mode: options.mode,
     autoIndex: options.autoIndex,
     _silent: true,
     _projectDir: options.projectDir,

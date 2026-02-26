@@ -58,8 +58,9 @@ async function runTextEmbeddingPipeline(opts: {
   hashText: (text: string) => string;
   makeChunkId: (relPath: string, idx: number) => string;
   progress: ProgressReporter;
+  lexicalIndex?: import('../../services/lexical-index.js').LexicalIndex;
 }): Promise<{ filesIndexed: number; filesSkipped: number; chunksCreated: number; chunksReused: number; chunksRemoved: number }> {
-  const { type, files, col768, manifest, hashContent, hashText, makeChunkId, progress } = opts;
+  const { type, files, col768, manifest, hashContent, hashText, makeChunkId, progress, lexicalIndex } = opts;
 
   let filesIndexed = 0;
   let filesSkipped = 0;
@@ -131,6 +132,7 @@ async function runTextEmbeddingPipeline(opts: {
 
       for (let i = chunks.length; i < existingChunks.length; i++) {
         col768.remove(existingChunks[i].id);
+        lexicalIndex?.removeDocument(existingChunks[i].id);
         chunksRemoved++;
       }
 
@@ -146,6 +148,7 @@ async function runTextEmbeddingPipeline(opts: {
         if (oldChunk && oldChunk.textHash === chunkTextHash) {
           chunksReused++;
         } else {
+          lexicalIndex?.addDocument(chunkId, chunk.text, { filePath: file.relativePath, chunkIndex: chunk.chunkIndex, lineStart: 0, lineEnd: 0 });
           allPendingChunks.push({
             relPath: file.relativePath,
             chunkId,
@@ -181,6 +184,7 @@ async function runTextEmbeddingPipeline(opts: {
 
       for (let i = chunks.length; i < existingChunks.length; i++) {
         col768.remove(existingChunks[i].id);
+        lexicalIndex?.removeDocument(existingChunks[i].id);
         chunksRemoved++;
       }
 
@@ -202,6 +206,7 @@ async function runTextEmbeddingPipeline(opts: {
         if (oldChunk && oldChunk.textHash === chunkTextHash) {
           chunksReused++;
         } else {
+          lexicalIndex?.addDocument(chunkId, chunk.text, { filePath: file.relativePath, chunkIndex: chunk.chunkIndex, lineStart: chunk.lineStart, lineEnd: chunk.lineEnd });
           allPendingChunks.push({
             relPath: file.relativePath,
             chunkId,
@@ -223,6 +228,7 @@ async function runTextEmbeddingPipeline(opts: {
 
       for (let i = chunks.length; i < existingChunks.length; i++) {
         col768.remove(existingChunks[i].id);
+        lexicalIndex?.removeDocument(existingChunks[i].id);
         chunksRemoved++;
       }
 
@@ -238,6 +244,7 @@ async function runTextEmbeddingPipeline(opts: {
         if (oldChunk && oldChunk.textHash === chunkTextHash) {
           chunksReused++;
         } else {
+          lexicalIndex?.addDocument(chunkId, chunk.text, { filePath: file.relativePath, chunkIndex: chunk.chunkIndex, lineStart: 0, lineEnd: 0 });
           allPendingChunks.push({
             relPath: file.relativePath,
             chunkId,
@@ -353,6 +360,21 @@ export async function runIndex(
     const { loadManifest, saveManifest, hashContent, hashText, makeChunkId } = await import('../../services/manifest-cache.js');
     const manifest = loadManifest(absPath);
 
+    // 4b. Load or create lexical index
+    const { existsSync, readFileSync, writeFileSync } = await import('fs');
+    const { LexicalIndex } = await import('../../services/lexical-index.js');
+    const lexicalPath = path.join(storagePath, 'lexical-index.json');
+    let lexicalIndex: InstanceType<typeof LexicalIndex>;
+    if (!options.clear && existsSync(lexicalPath)) {
+      try {
+        lexicalIndex = LexicalIndex.fromJSON(readFileSync(lexicalPath, 'utf-8'));
+      } catch {
+        lexicalIndex = new LexicalIndex();
+      }
+    } else {
+      lexicalIndex = new LexicalIndex();
+    }
+
     // 5. Determine which types to index
     const typesToIndex: FileType[] = options.type
       ? [options.type as FileType]
@@ -406,6 +428,7 @@ export async function runIndex(
           const entry = manifest.files[deletedPath];
           for (const chunk of entry.chunks) {
             col768.remove(chunk.id);
+            lexicalIndex.removeDocument(chunk.id);
             totalChunksRemoved++;
           }
           delete manifest.files[deletedPath];
@@ -422,6 +445,7 @@ export async function runIndex(
           hashText,
           makeChunkId,
           progress,
+          lexicalIndex,
         });
 
         totalFilesIndexed += result.filesIndexed;
@@ -521,7 +545,7 @@ export async function runIndex(
       throw new EzSearchError('EMPTY_DIR', 'No supported files found in directory', 'Ensure the directory contains supported file types (.ts, .js, .py, .go, .rs, .c, .cpp, .md, .txt, .jpg, .png, .webp)');
     }
 
-    // 6. Optimize, close collections, THEN save manifest
+    // 6. Optimize, close collections, save lexical index, THEN save manifest
     progress.update('optimizing index...');
     col768.optimize();
     col512.optimize();
@@ -529,6 +553,7 @@ export async function runIndex(
     col512.close();
     const { releaseAllPipelines } = await import('../../services/model-router.js');
     await releaseAllPipelines();
+    writeFileSync(lexicalPath, lexicalIndex.toJSON());
     saveManifest(absPath, manifest);
     progress.done();
 

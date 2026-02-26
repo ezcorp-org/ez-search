@@ -1,5 +1,7 @@
 export type FileType = 'code' | 'text' | 'image';
 
+export type SearchMode = 'hybrid' | 'semantic' | 'keyword';
+
 export interface ScannedFile {
   absolutePath: string;
   relativePath: string;
@@ -60,6 +62,11 @@ export const EXTENSION_MAP: Record<string, FileType> = {
   '.webp': 'image',
   '.svg': 'image',
 };
+
+export function fileTypeFromPath(filePath: string): FileType | undefined {
+  const ext = '.' + filePath.split('.').pop()?.toLowerCase();
+  return EXTENSION_MAP[ext];
+}
 
 export const BUILTIN_EXCLUSIONS: string[] = [
   'node_modules',

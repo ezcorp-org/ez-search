@@ -1,25 +1,23 @@
 /**
- * Query command — multi-collection grouped semantic search.
+ * Query command — multi-collection search with hybrid (semantic + BM25), semantic, or keyword modes.
  *
  * Pipeline:
  *   1. Resolve project directory (cwd or explicit projectDir)
- *   2. Open vector collections (col-768 for code+text, col-512 for images)
+ *   2. Validate search mode (hybrid | semantic | keyword)
  *   3. Load manifest for totalIndexed count
- *   4. For each requested type:
- *      a. code:  embed with Qwen3 (instruct prefix), query col-768, filter by Qwen3 modelId
- *      b. text:  embed with Qwen3 (instruct prefix), query col-768, filter by Qwen3 modelId
- *      c. image: embed with CLIP text encoder, query col-512
- *   5. Apply --threshold and --dir filters per type
- *   6. Collapse adjacent chunks per type
- *   7. Sort by score desc, slice to topK per type
- *   8. Output grouped JSON { code: [...], text: [...], image: [...] } or text with ## headers
+ *   4. For keyword/hybrid modes, load lexical index
+ *   5. For semantic/hybrid modes, open vector collections + embed query
+ *   6. Fuse results via RRF (hybrid mode) or pass through (single mode)
+ *   7. Apply --threshold and --dir filters, collapse adjacent chunks
+ *   8. Output grouped JSON or text
  *
  * col-768: Qwen3 code+text embeddings (same model, different instruct prefixes)
  * col-512: CLIP image embeddings (separate vector space)
  */
 
-import type { CollapsedResult, ImageResult } from '../../services/query-utils.js';
+import type { CollapsedResult, ImageResult, NormalizedResult } from '../../services/query-utils.js';
 import { EzSearchError } from '../../errors.js';
+import { fileTypeFromPath, type SearchMode } from '../../types.js';
 
 // ── Return types ──────────────────────────────────────────────────────────────
 
@@ -45,6 +43,7 @@ export interface QueryResult {
   query: string;
   totalIndexed: number;
   searchScope: string;
+  mode: SearchMode;
   indexing?: { status: string; filesIndexed: number; durationMs: number };
   stale?: boolean;
   staleFileCount?: number;
@@ -59,6 +58,7 @@ export interface QueryOptions {
   dir?: string;
   threshold?: string;
   type?: string;
+  mode?: string;
   autoIndex?: boolean;
   _silent?: boolean;
   _projectDir?: string;
@@ -72,6 +72,13 @@ export async function runQuery(
   const threshold = options.threshold !== undefined ? parseFloat(options.threshold) : undefined;
   const silent = options._silent ?? false;
   const projectDir = options._projectDir ?? process.cwd();
+
+  // Validate mode
+  const VALID_MODES: SearchMode[] = ['hybrid', 'semantic', 'keyword'];
+  const mode: SearchMode = (options.mode as SearchMode) ?? 'hybrid';
+  if (!VALID_MODES.includes(mode)) {
+    throw new EzSearchError('INVALID_MODE', `Invalid search mode: "${options.mode}". Must be one of: hybrid, semantic, keyword`, 'Use --mode hybrid, --mode semantic, or --mode keyword');
+  }
 
   // 1. Load manifest
   const { loadManifest } = await import('../../services/manifest-cache.js');
@@ -137,11 +144,43 @@ export async function runQuery(
     throw new EzSearchError('NO_INDEX', 'No indexed content found', 'Run `ez-search index .` first');
   }
 
-  // 3. Open vector collections as needed
-  const { openCollection } = await import('../../services/vector-db.js');
-  const col768 = openCollection(projectDir, 'col-768');
+  // 3. Load lexical index (for hybrid/keyword modes)
+  const needsLexical = mode !== 'semantic';
+  let lexicalIndex: import('../../services/lexical-index.js').LexicalIndex | null = null;
+
+  if (needsLexical) {
+    const { existsSync, readFileSync } = await import('fs');
+    const { join } = await import('path');
+    const lexicalPath = join(projectDir, '.ez-search', 'lexical-index.json');
+
+    if (existsSync(lexicalPath)) {
+      const { LexicalIndex } = await import('../../services/lexical-index.js');
+      try {
+        lexicalIndex = LexicalIndex.fromJSON(readFileSync(lexicalPath, 'utf-8'));
+      } catch {
+        lexicalIndex = null;
+      }
+    }
+
+    // Fallback warning for missing lexical index (needsLexical is true here, so mode is hybrid/keyword)
+    if (!lexicalIndex && !silent) {
+      process.stderr.write('Warning: lexical index not found, falling back to semantic search. Re-index to enable keyword/hybrid modes.\n');
+    }
+  }
+
+  // Effective mode: fall back to semantic if lexical index unavailable
+  const effectiveMode: SearchMode = (needsLexical && !lexicalIndex) ? 'semantic' : mode;
+
+  // 4. Open vector collections (skip for pure keyword mode)
+  const needsVectors = effectiveMode !== 'keyword';
   const needsImages = typesToQuery.includes('image');
-  const col512 = needsImages ? openCollection(projectDir, 'col-512') : null;
+  let col768: ReturnType<Awaited<typeof import('../../services/vector-db.js')>['openCollection']> | null = null;
+  let col512: ReturnType<Awaited<typeof import('../../services/vector-db.js')>['openCollection']> | null = null;
+  if (needsVectors) {
+    const { openCollection } = await import('../../services/vector-db.js');
+    col768 = openCollection(projectDir, 'col-768');
+    if (needsImages) col512 = openCollection(projectDir, 'col-512');
+  }
 
   try {
 
@@ -155,68 +194,28 @@ export async function runQuery(
 
   // ── Execute per-type queries sequentially (memory conservation) ──────────
 
-  const { createEmbeddingPipeline } = await import('../../services/model-router.js');
-
   let codeResults: CollapsedResult[] = [];
   let textResults: CollapsedResult[] = [];
   let imageResults: ImageResult[] = [];
 
   if (typesToQuery.includes('code')) {
-    // Code: Qwen3 embedding with instruct prefix, query col-768
-    let pipe: Awaited<ReturnType<typeof createEmbeddingPipeline>> | null = null;
-    try {
-      if (!silent) process.stderr.write(process.stderr.isTTY ? '\r\x1b[Kcode: loading model...' : 'code: loading model...\n');
-      pipe = await createEmbeddingPipeline('code');
-      if (!silent && process.stderr.isTTY) process.stderr.write('\r\x1b[K');
-      const prefixedQuery = `Instruct: Given a search query, retrieve relevant code snippets\nQuery: ${text}`;
-      const [queryEmbedding] = await pipe.embed([prefixedQuery]);
-
-      let rawResults: Awaited<ReturnType<typeof col768.query>>;
-      try {
-        rawResults = col768.query(queryEmbedding, fetchCount);
-      } catch {
-        rawResults = [];
-      }
-
-      const normalized = normalizeResults(rawResults);
-      codeResults = filterAndCollapse(normalized, (id) => id.includes('Qwen3-Embedding'), { threshold, dir: options.dir, topK });
-    } catch (err) {
-      if (!silent) process.stderr.write(`[query] code pipeline error: ${err instanceof Error ? err.message : String(err)}\n`);
-    } finally {
-      if (pipe) await pipe.dispose(); // no-op with pipeline cache
-    }
+    codeResults = await queryCodeOrText('code', text, {
+      effectiveMode, col768, lexicalIndex, fetchCount, threshold, dir: options.dir, topK, silent,
+      instructPrefix: `Instruct: Given a search query, retrieve relevant code snippets\nQuery: ${text}`,
+      normalizeResults, filterAndCollapse,
+    });
   }
 
   if (typesToQuery.includes('text')) {
-    // Text: Qwen3 embedding with instruct prefix, query col-768
-    let pipe: Awaited<ReturnType<typeof createEmbeddingPipeline>> | null = null;
-    try {
-      pipe = await createEmbeddingPipeline('text');
-      if (!pipe.cached && !silent) {
-        process.stderr.write(process.stderr.isTTY ? '\r\x1b[Ktext: loading model...' : 'text: loading model...\n');
-      }
-      if (!silent && process.stderr.isTTY) process.stderr.write('\r\x1b[K');
-      const prefixedQuery = `Instruct: Given a search query, retrieve relevant text passages\nQuery: ${text}`;
-      const [queryEmbedding] = await pipe.embed([prefixedQuery]);
-
-      let rawResults: Awaited<ReturnType<typeof col768.query>>;
-      try {
-        rawResults = col768.query(queryEmbedding, fetchCount);
-      } catch {
-        rawResults = [];
-      }
-
-      const normalized = normalizeResults(rawResults);
-      textResults = filterAndCollapse(normalized, (id) => id.includes('Qwen3-Embedding'), { threshold, dir: options.dir, topK });
-    } catch (err) {
-      if (!silent) process.stderr.write(`[query] text pipeline error: ${err instanceof Error ? err.message : String(err)}\n`);
-    } finally {
-      if (pipe) await pipe.dispose(); // no-op with pipeline cache
-    }
+    textResults = await queryCodeOrText('text', text, {
+      effectiveMode, col768, lexicalIndex, fetchCount, threshold, dir: options.dir, topK, silent,
+      instructPrefix: `Instruct: Given a search query, retrieve relevant text passages\nQuery: ${text}`,
+      normalizeResults, filterAndCollapse,
+    });
   }
 
+  // Images: always semantic-only, unaffected by mode
   if (needsImages && col512) {
-    // Image: CLIP text embedding with prompt ensembling, query col-512
     let pipe: import('../../services/image-embedder.js').ClipTextPipeline | null = null;
     try {
       if (!silent) process.stderr.write(process.stderr.isTTY ? '\r\x1b[Kimage: loading model...' : 'image: loading model...\n');
@@ -265,6 +264,7 @@ export async function runQuery(
     query: text,
     totalIndexed,
     searchScope: options.dir ?? '.',
+    mode: effectiveMode,
     code: codeResults.map((r) => ({
       file: r.filePath,
       lines: { start: r.lineStart, end: r.lineEnd },
@@ -348,6 +348,7 @@ export async function runQuery(
         query: result.query,
         totalIndexed: result.totalIndexed,
         searchScope: result.searchScope,
+        mode: result.mode,
       };
 
       if (result.indexing) output['indexing'] = result.indexing;
@@ -367,9 +368,141 @@ export async function runQuery(
   return result;
 
   } finally {
-    col768.close();
+    if (col768) col768.close();
     if (col512) col512.close();
     const { releaseAllPipelines } = await import('../../services/model-router.js');
     await releaseAllPipelines();
+  }
+}
+
+// ── Shared code/text query helper ─────────────────────────────────────────────
+
+/**
+ * Runs semantic, keyword, or hybrid query for code or text type.
+ * Extracted to reduce duplication between code and text query blocks.
+ */
+async function queryCodeOrText(
+  type: 'code' | 'text',
+  queryText: string,
+  opts: {
+    effectiveMode: SearchMode;
+    col768: ReturnType<Awaited<typeof import('../../services/vector-db.js')>['openCollection']> | null;
+    lexicalIndex: import('../../services/lexical-index.js').LexicalIndex | null;
+    fetchCount: number;
+    threshold?: number;
+    dir?: string;
+    topK: number;
+    silent: boolean;
+    instructPrefix: string;
+    normalizeResults: typeof import('../../services/query-utils.js').normalizeResults;
+    filterAndCollapse: typeof import('../../services/query-utils.js').filterAndCollapse;
+  },
+): Promise<CollapsedResult[]> {
+  const { effectiveMode, col768, lexicalIndex, fetchCount, threshold, dir, topK, silent, instructPrefix, normalizeResults: normalize, filterAndCollapse: collapse } = opts;
+
+  try {
+    // ── Semantic results ──────────────────────────────────────────────────
+    let semanticNormalized: NormalizedResult[] = [];
+
+    if (effectiveMode !== 'keyword' && col768) {
+      const { createEmbeddingPipeline } = await import('../../services/model-router.js');
+      let pipe: Awaited<ReturnType<typeof createEmbeddingPipeline>> | null = null;
+      try {
+        if (!silent) process.stderr.write(process.stderr.isTTY ? `\r\x1b[K${type}: loading model...` : `${type}: loading model...\n`);
+        pipe = await createEmbeddingPipeline(type);
+        if (!silent && process.stderr.isTTY) process.stderr.write('\r\x1b[K');
+        const [queryEmbedding] = await pipe.embed([instructPrefix]);
+
+        let rawResults: Awaited<ReturnType<typeof col768.query>>;
+        try {
+          rawResults = col768.query(queryEmbedding, fetchCount);
+        } catch {
+          rawResults = [];
+        }
+
+        semanticNormalized = normalize(rawResults)
+          .filter((r) => r.modelId.includes('Qwen3-Embedding'))
+          .filter((r) => fileTypeFromPath(r.filePath) === type);
+      } finally {
+        if (pipe) await pipe.dispose();
+      }
+    }
+
+    // ── Lexical results ───────────────────────────────────────────────────
+    let lexicalNormalized: NormalizedResult[] = [];
+
+    if (effectiveMode !== 'semantic' && lexicalIndex) {
+      const lexResults = lexicalIndex.query(queryText, fetchCount);
+      lexicalNormalized = lexResults.map((r) => ({
+        filePath: r.filePath,
+        chunkIndex: r.chunkIndex,
+        lineStart: r.lineStart,
+        lineEnd: r.lineEnd,
+        chunkText: r.chunkText,
+        modelId: 'minisearch-bm25',
+        score: r.score,
+      })).filter((r) => fileTypeFromPath(r.filePath) === type);
+    }
+
+    // ── Mode branching ────────────────────────────────────────────────────
+    if (effectiveMode === 'hybrid' && semanticNormalized.length > 0 && lexicalNormalized.length > 0) {
+      // Fuse via RRF then filter/collapse
+      const { rrfFuse: fuse } = await import('../../services/hybrid-fusion.js');
+
+      const semanticRanked = semanticNormalized.map((r) => ({
+        id: `${r.filePath}:${r.chunkIndex}`,
+        filePath: r.filePath,
+        chunkIndex: r.chunkIndex,
+        lineStart: r.lineStart,
+        lineEnd: r.lineEnd,
+        chunkText: r.chunkText,
+        score: r.score,
+      }));
+
+      const lexicalRanked = lexicalNormalized.map((r) => ({
+        id: `${r.filePath}:${r.chunkIndex}`,
+        filePath: r.filePath,
+        chunkIndex: r.chunkIndex,
+        lineStart: r.lineStart,
+        lineEnd: r.lineEnd,
+        chunkText: r.chunkText,
+        score: r.score,
+      }));
+
+      const fused = fuse(semanticRanked, lexicalRanked);
+
+      // Convert fused results back to NormalizedResult for filterAndCollapse
+      const fusedNormalized: NormalizedResult[] = fused.map((r) => ({
+        filePath: r.filePath,
+        chunkIndex: r.chunkIndex,
+        lineStart: r.lineStart,
+        lineEnd: r.lineEnd,
+        chunkText: r.chunkText,
+        modelId: 'hybrid-rrf',
+        score: r.fusedScore,
+      }));
+
+      return collapse(fusedNormalized, () => true, { threshold, dir, topK });
+    }
+
+    if (effectiveMode === 'keyword' || (effectiveMode === 'hybrid' && semanticNormalized.length === 0)) {
+      // Keyword-only: normalize lexical scores to [0,1] and filter/collapse
+      if (lexicalNormalized.length === 0) return [];
+
+      const maxScore = Math.max(...lexicalNormalized.map((r) => r.score));
+      const normalized: NormalizedResult[] = lexicalNormalized.map((r) => ({
+        ...r,
+        score: maxScore > 0 ? Math.round((r.score / maxScore) * 10000) / 10000 : 0,
+      }));
+
+      return collapse(normalized, () => true, { threshold, dir, topK });
+    }
+
+    // Semantic-only (or hybrid with no lexical results)
+    return collapse(semanticNormalized, (id) => id.includes('Qwen3-Embedding'), { threshold, dir, topK });
+
+  } catch (err) {
+    if (!silent) process.stderr.write(`[query] ${type} pipeline error: ${err instanceof Error ? err.message : String(err)}\n`);
+    return [];
   }
 }
