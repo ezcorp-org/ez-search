@@ -28,7 +28,8 @@
     "test": "bun test",
     "test:unit": "bun test tests/unit/",
     "test:integration": "bun test tests/integration/",
-    "test:accuracy": "bun test tests/accuracy/"
+    "test:accuracy": "bun test tests/accuracy/",
+    "bench": "bun test tests/benchmarks/"
   },
   "keywords": [
     "semantic-search",
