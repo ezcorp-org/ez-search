@@ -13,7 +13,7 @@
 export function precisionAtK(retrieved: string[], relevant: Set<string>, k: number): number {
   const topK = retrieved.slice(0, k);
   if (topK.length === 0) return 0;
-  const hits = topK.filter((r) => relevant.has(r)).length;
+  const hits = new Set(topK.filter((r) => relevant.has(r))).size;
   return hits / topK.length;
 }
 
@@ -23,7 +23,7 @@ export function precisionAtK(retrieved: string[], relevant: Set<string>, k: numb
 export function recallAtK(retrieved: string[], relevant: Set<string>, k: number): number {
   if (relevant.size === 0) return 1;
   const topK = retrieved.slice(0, k);
-  const hits = topK.filter((r) => relevant.has(r)).length;
+  const hits = new Set(topK.filter((r) => relevant.has(r))).size;
   return hits / relevant.size;
 }
 
@@ -46,9 +46,11 @@ export function ndcgAtK(retrieved: string[], relevant: Set<string>, k: number): 
   const topK = retrieved.slice(0, k);
 
   let dcg = 0;
+  const seen = new Set<string>();
   for (let i = 0; i < topK.length; i++) {
-    if (relevant.has(topK[i])) {
+    if (relevant.has(topK[i]) && !seen.has(topK[i])) {
       dcg += 1 / Math.log2(i + 2);
+      seen.add(topK[i]);
     }
   }
 
