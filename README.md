@@ -8,7 +8,7 @@ Built as a contextual retrieval engine for AI coding assistants like Claude Code
 
 ## Features
 
-- **Three search pipelines** -- code, text/documents, and images, each with a specialized embedding model
+- **Three search pipelines** -- code, text/documents, and images (code and text share a single model with task-specific query prefixes; images use CLIP)
 - **Hybrid search** -- combines semantic vector search with BM25 keyword matching (via code-aware tokenization) for best-of-both-worlds retrieval; also supports pure semantic or keyword-only modes
 - **Incremental indexing** -- only re-embeds files that have changed (mtime + content hash)
 - **WebGPU acceleration** with automatic CPU fallback
@@ -19,7 +19,7 @@ Built as a contextual retrieval engine for AI coding assistants like Claude Code
 ## Requirements
 
 - **Node.js v20+** (v22+ recommended for WebGPU support)
-- Models are downloaded automatically on first run (~500MB total for all three)
+- Models are downloaded automatically on first run (~900MB total for both models)
 
 ## Installation
 
@@ -127,6 +127,12 @@ JSON output returns a grouped envelope:
       "score": 0.72,
       "text": "..."
     }
+  ],
+  "image": [
+    {
+      "file": "docs/diagram.png",
+      "score": 0.65
+    }
   ]
 }
 ```
@@ -143,6 +149,10 @@ File: src/db/pool.ts | Lines: 12-45 | Relevance: 0.87
 
 File: docs/architecture.md | Relevance: 0.72
     <chunk text>
+
+## Images
+
+File: docs/diagram.png | Relevance: 0.65
 ```
 
 ### `ez-search status`
@@ -175,11 +185,11 @@ ez-search uses three specialized embedding models, each optimized for a differen
 
 | Pipeline | Model | Dimensions | Chunking |
 |----------|-------|------------|----------|
-| Code | `jinaai/jina-embeddings-v2-base-code` | 768 | 500-token sliding window, 50-token overlap |
-| Text | `nomic-ai/nomic-embed-text-v1.5` | 768 | Paragraph-boundary splitting, ~1600 chars per chunk |
-| Image | `Xenova/clip-vit-base-patch32` | 512 | One vector per image (no chunking) |
+| Code | `onnx-community/Qwen3-Embedding-0.6B-ONNX` | 768 (truncated from 1024 via Matryoshka) | 500-token sliding window, 50-token overlap |
+| Text | `onnx-community/Qwen3-Embedding-0.6B-ONNX` | 768 (truncated from 1024 via Matryoshka) | Paragraph-boundary splitting, ~1600 chars per chunk |
+| Image | `Xenova/clip-vit-base-patch16` | 512 | One vector per image (no chunking) |
 
-Models are lazy-loaded -- only the model needed for the current operation is loaded. On first run, model weights are downloaded and cached in `~/.ez-search/models/`.
+Models are lazy-loaded -- only the model needed for the current operation is loaded. Code and text share a single Qwen3 model (differentiated by instruct prefix at query time), so loading one implicitly covers both. On first run, model weights are downloaded and cached in `~/.ez-search/models/`.
 
 **Incremental indexing:** A manifest at `.ez-search/manifest.json` tracks file size, mtime, and content hash (SHA-256). On subsequent runs, only changed files are re-embedded. Chunk-level deduplication further reduces work when only part of a file changes.
 
@@ -194,7 +204,7 @@ ez-search uses convention over configuration. There are no config files.
 - **Project index:** stored in `<project>/.ez-search/` (add to `.gitignore`)
 - **Model cache:** stored in `~/.ez-search/models/` (shared across projects)
 - **File filtering:** respects `.gitignore` and `.cursorignore` by default; disable with `--no-ignore`
-- **Built-in exclusions:** `node_modules`, `.git`, `dist`, `build`, lockfiles, `.min.js`, `.map`, and other common noise are always excluded
+- **Built-in exclusions:** `node_modules`, `.git`, `dist`, `build`, lockfiles, `.min.js`, `.min.css`, `.map`, and other common noise are always excluded
 
 ## Troubleshooting
 
