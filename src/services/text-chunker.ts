@@ -11,7 +11,7 @@
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-/** ~400 Nomic tokens — maximum characters per chunk */
+/** ~400 tokens — maximum characters per chunk */
 export const MAX_CHUNK_CHARS = 1600;
 
 /** Minimum characters to keep a chunk (prevents tiny fragments) */
@@ -97,7 +97,7 @@ export async function extractPdfText(buffer: Buffer): Promise<string> {
 }
 
 /**
- * Split a text document into paragraph-boundary chunks suitable for Nomic embeddings.
+ * Split a text document into paragraph-boundary chunks suitable for Qwen3 embeddings.
  *
  * Algorithm:
  * 1. Split on paragraph boundaries (\n\n+)

@@ -222,7 +222,7 @@ async function runTextEmbeddingPipeline(opts: {
 
       newFileEntries.push({ relPath: file.relativePath, mtime: file.mtimeMs, size: file.sizeBytes, hash: fileHash, chunks: chunkRecords });
     } else {
-      // Text (non-PDF): paragraph-boundary chunking for Nomic
+      // Text (non-PDF): paragraph-boundary chunking for Qwen3
       const { chunkTextFile } = await import('../../services/text-chunker.js');
       const chunks = chunkTextFile(content);
 
