@@ -74,15 +74,16 @@ function l2Normalize(vec: Float32Array): Float32Array {
  * Loads the AutoProcessor and CLIPVisionModelWithProjection in parallel.
  * Model weights are cached in ~/.ez-search/models/.
  */
-export async function createImageEmbeddingPipeline(): Promise<ImageEmbeddingPipeline> {
+export async function createImageEmbeddingPipeline(options?: { modelId?: string }): Promise<ImageEmbeddingPipeline> {
   env.cacheDir = resolveModelCachePath();
   env.allowRemoteModels = true;
 
-  const cb = createDownloadProgressCallback(CLIP_MODEL_ID);
+  const effectiveModelId = options?.modelId ?? CLIP_MODEL_ID;
+  const cb = createDownloadProgressCallback(effectiveModelId);
 
   const [processor, visionModel] = await Promise.all([
-    AutoProcessor.from_pretrained(CLIP_MODEL_ID, { progress_callback: cb }),
-    CLIPVisionModelWithProjection.from_pretrained(CLIP_MODEL_ID, {
+    AutoProcessor.from_pretrained(effectiveModelId, { progress_callback: cb }),
+    CLIPVisionModelWithProjection.from_pretrained(effectiveModelId, {
       dtype: 'fp32',
       progress_callback: cb,
     }),
@@ -91,7 +92,7 @@ export async function createImageEmbeddingPipeline(): Promise<ImageEmbeddingPipe
   console.error(`[image-embedder] Loaded CLIP vision model (fp32)`);
 
   return {
-    modelId: CLIP_MODEL_ID,
+    modelId: effectiveModelId,
     dim: CLIP_DIM,
 
     async embedImage(buf: Buffer | Uint8Array): Promise<Float32Array> {
@@ -116,21 +117,22 @@ export async function createImageEmbeddingPipeline(): Promise<ImageEmbeddingPipe
  * Used for text-to-image search: encode query text into CLIP's 512-dim space,
  * then find nearest image embeddings.
  */
-export async function createClipTextPipeline(): Promise<ClipTextPipeline> {
+export async function createClipTextPipeline(options?: { modelId?: string }): Promise<ClipTextPipeline> {
   env.cacheDir = resolveModelCachePath();
   env.allowRemoteModels = true;
 
-  const cb = createDownloadProgressCallback(CLIP_MODEL_ID);
+  const effectiveModelId = options?.modelId ?? CLIP_MODEL_ID;
+  const cb = createDownloadProgressCallback(effectiveModelId);
 
   const [tokenizer, textModel] = await Promise.all([
-    AutoTokenizer.from_pretrained(CLIP_MODEL_ID, { progress_callback: cb }),
-    CLIPTextModelWithProjection.from_pretrained(CLIP_MODEL_ID, { dtype: 'fp32', progress_callback: cb }),
+    AutoTokenizer.from_pretrained(effectiveModelId, { progress_callback: cb }),
+    CLIPTextModelWithProjection.from_pretrained(effectiveModelId, { dtype: 'fp32', progress_callback: cb }),
   ]);
 
   console.error(`[image-embedder] Loaded CLIP text model (fp32)`);
 
   return {
-    modelId: CLIP_MODEL_ID,
+    modelId: effectiveModelId,
     dim: CLIP_DIM,
 
     async embedText(texts: string[]): Promise<Float32Array[]> {

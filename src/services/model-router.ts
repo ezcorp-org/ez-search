@@ -50,6 +50,8 @@ const loadingPromises = new Map<string, Promise<CachedPipeline>>();
 
 export interface EmbeddingPipelineOptions {
   progressCallback?: (progress: unknown) => void;
+  /** Custom HuggingFace ID or local path to ONNX model. Overrides registry default. */
+  modelId?: string;
 }
 
 /**
@@ -98,23 +100,24 @@ export async function createEmbeddingPipeline(
   options: EmbeddingPipelineOptions = {}
 ): Promise<EmbeddingPipeline> {
   const model = MODEL_REGISTRY[modelType];
+  const effectiveModelId = options.modelId ?? model.id;
 
-  // Check cache for an already-loaded pipeline with this model ID
-  const existingCached = pipelineCache.get(model.id);
+  // Check cache for an already-loaded pipeline with this effective model ID
+  const existingCached = pipelineCache.get(effectiveModelId);
   if (existingCached) {
-    return buildPipelineWrapper(existingCached.pipe, existingCached.backend, model, true);
+    return buildPipelineWrapper(existingCached.pipe, existingCached.backend, model, effectiveModelId, true);
   }
 
   // Check for an in-flight load (handles concurrent callers in library mode)
-  const existingPromise = loadingPromises.get(model.id);
+  const existingPromise = loadingPromises.get(effectiveModelId);
   if (existingPromise) {
     const cached = await existingPromise;
-    return buildPipelineWrapper(cached.pipe, cached.backend, model, true);
+    return buildPipelineWrapper(cached.pipe, cached.backend, model, effectiveModelId, true);
   }
 
   // Fresh load — run WebGPU→CPU fallback logic
   const loadPromise = (async (): Promise<CachedPipeline> => {
-    const cb = options.progressCallback ?? createDownloadProgressCallback(model.id);
+    const cb = options.progressCallback ?? createDownloadProgressCallback(effectiveModelId);
 
     // Set cache dir BEFORE first pipeline() call — this is critical
     env.cacheDir = resolveModelCachePath();
@@ -124,38 +127,38 @@ export async function createEmbeddingPipeline(
     let backend: ModelBackend;
 
     try {
-      pipe = await pipeline('feature-extraction', model.id, {
+      pipe = await pipeline('feature-extraction', effectiveModelId, {
         device: 'webgpu',
         dtype: 'fp32',
         progress_callback: cb,
       });
       backend = 'webgpu';
-      console.error(`[model-router] Using WebGPU for ${model.id}`);
+      console.error(`[model-router] Using WebGPU for ${effectiveModelId}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[model-router] WebGPU unavailable: ${msg}`);
-      console.error(`[model-router] Falling back to CPU (q8) for ${model.id}`);
+      console.error(`[model-router] Falling back to CPU (q8) for ${effectiveModelId}`);
 
-      pipe = await pipeline('feature-extraction', model.id, {
+      pipe = await pipeline('feature-extraction', effectiveModelId, {
         device: 'cpu',
         dtype: 'q8',
         progress_callback: cb,
       });
       backend = 'cpu';
-      console.error(`[model-router] Using CPU for ${model.id}`);
+      console.error(`[model-router] Using CPU for ${effectiveModelId}`);
     }
 
     const cached: CachedPipeline = { pipe, backend };
-    pipelineCache.set(model.id, cached);
+    pipelineCache.set(effectiveModelId, cached);
     return cached;
   })();
 
-  loadingPromises.set(model.id, loadPromise);
+  loadingPromises.set(effectiveModelId, loadPromise);
   try {
     const cached = await loadPromise;
-    return buildPipelineWrapper(cached.pipe, cached.backend, model, false);
+    return buildPipelineWrapper(cached.pipe, cached.backend, model, effectiveModelId, false);
   } finally {
-    loadingPromises.delete(model.id);
+    loadingPromises.delete(effectiveModelId);
   }
 }
 
@@ -163,11 +166,12 @@ function buildPipelineWrapper(
   pipe: Awaited<ReturnType<typeof pipeline>>,
   backend: ModelBackend,
   model: (typeof MODEL_REGISTRY)[ModelType],
+  effectiveModelId: string,
   cached: boolean,
 ): EmbeddingPipeline {
   return {
     backend,
-    modelId: model.id,
+    modelId: effectiveModelId,
     dim: model.dim,
     cached,
 
