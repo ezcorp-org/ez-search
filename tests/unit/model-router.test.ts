@@ -127,6 +127,46 @@ describe('model-router', () => {
     });
   });
 
+  // ── Custom modelId override ────────────────────────────────────────────
+
+  describe('custom modelId override', () => {
+    test('uses custom modelId when provided', async () => {
+      const p = await createEmbeddingPipeline('code', { modelId: 'my-org/custom-model' });
+
+      expect(p.modelId).toBe('my-org/custom-model');
+      // Should have called pipeline() with the custom model ID
+      expect(pipelineCalls.some(c => c.model === 'my-org/custom-model')).toBe(true);
+    });
+
+    test('custom model gets its own cache entry', async () => {
+      const defaultPipe = await createEmbeddingPipeline('code');
+      expect(defaultPipe.modelId).toBe('onnx-community/Qwen3-Embedding-0.6B-ONNX');
+      expect(defaultPipe.cached).toBe(false);
+
+      const customPipe = await createEmbeddingPipeline('code', { modelId: 'my-org/custom-model' });
+      expect(customPipe.modelId).toBe('my-org/custom-model');
+      expect(customPipe.cached).toBe(false); // Different model, not cached
+
+      // Default model should still be cached separately
+      const defaultAgain = await createEmbeddingPipeline('code');
+      expect(defaultAgain.cached).toBe(true);
+    });
+
+    test('two calls with same custom modelId share cache', async () => {
+      const first = await createEmbeddingPipeline('code', { modelId: 'my-org/custom-model' });
+      expect(first.cached).toBe(false);
+
+      const second = await createEmbeddingPipeline('text', { modelId: 'my-org/custom-model' });
+      expect(second.cached).toBe(true);
+    });
+
+    test('retains registry dim even with custom modelId', async () => {
+      const p = await createEmbeddingPipeline('code', { modelId: 'my-org/custom-model' });
+      // dim comes from MODEL_REGISTRY, not the custom model ID
+      expect(p.dim).toBe(768);
+    });
+  });
+
   // ── WebGPU to CPU fallback ──────────────────────────────────────────────
 
   describe('WebGPU to CPU fallback', () => {
