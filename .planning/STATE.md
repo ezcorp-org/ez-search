@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 
 Phase: v1.0 complete (8 phases, 14 plans)
 Status: Milestone shipped, ready for next milestone
-Last activity: 2026-02-24 -- Completed quick task 002: Landing page
+Last activity: 2026-03-01 -- Completed quick task 003: Custom ONNX model path for CLI and API
 
 Progress: [##########] 100% (v1.0 shipped)
 
@@ -28,6 +28,7 @@ Full decision history available in .planning/milestones/v1-ROADMAP.md.
 |---|-------------|------|--------|-----------|
 | 001 | Clean up tech debt: remove clearManifest dead export, fix --type NO_INDEX guard | 2026-02-23 | cf02f92 | [001-clean-up-tech-debt](./quick/001-clean-up-tech-debt/) |
 | 002 | Landing page: SvelteKit + Tailwind + Cloudflare Workers | 2026-02-24 | 2c5ab60 | [002-landing-page-sveltekit-cloudflare](./quick/002-landing-page-sveltekit-cloudflare/) |
+| 003 | Custom ONNX model path for CLI and API: --model/--clip-model flags + library options | 2026-03-01 | e5b2668 | [003-custom-onnx-model-path-for-cli-and-api](./quick/003-custom-onnx-model-path-for-cli-and-api/) |
 
 ### Blockers/Concerns
 
@@ -35,6 +36,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-23
-Stopped at: v1.0 milestone archived. Ready for /gsd:new-milestone.
+Last session: 2026-03-01
+Stopped at: Completed quick task 003 (custom ONNX model path for CLI and API).
 Resume file: None
