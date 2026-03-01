@@ -165,6 +165,57 @@ describe('createImageEmbeddingPipeline', () => {
   });
 });
 
+// ── Tests: createImageEmbeddingPipeline with custom modelId ───────────────────
+
+describe('createImageEmbeddingPipeline with custom modelId', () => {
+  let pipeline: ImageEmbeddingPipeline;
+
+  beforeAll(async () => {
+    const { createImageEmbeddingPipeline } = await import('../../src/services/image-embedder.js');
+    pipeline = await createImageEmbeddingPipeline({ modelId: 'my-org/custom-clip' });
+  });
+
+  test('uses custom modelId', () => {
+    expect(pipeline.modelId).toBe('my-org/custom-clip');
+  });
+
+  test('retains dim=512', () => {
+    expect(pipeline.dim).toBe(512);
+  });
+
+  test('embedImage still works with custom model', async () => {
+    const buf = Buffer.from('fake-image-data');
+    const embedding = await pipeline.embedImage(buf);
+    expect(embedding).toBeInstanceOf(Float32Array);
+    expect(embedding.length).toBe(512);
+  });
+});
+
+// ── Tests: createClipTextPipeline with custom modelId ─────────────────────────
+
+describe('createClipTextPipeline with custom modelId', () => {
+  let pipeline: ClipTextPipeline;
+
+  beforeAll(async () => {
+    const { createClipTextPipeline } = await import('../../src/services/image-embedder.js');
+    pipeline = await createClipTextPipeline({ modelId: 'my-org/custom-clip' });
+  });
+
+  test('uses custom modelId', () => {
+    expect(pipeline.modelId).toBe('my-org/custom-clip');
+  });
+
+  test('retains dim=512', () => {
+    expect(pipeline.dim).toBe(512);
+  });
+
+  test('embedText still works with custom model', async () => {
+    const [embedding] = await pipeline.embedText(['test query']);
+    expect(embedding).toBeInstanceOf(Float32Array);
+    expect(embedding.length).toBe(512);
+  });
+});
+
 // ── Tests: createClipTextPipeline ─────────────────────────────────────────────
 
 describe('createClipTextPipeline', () => {
