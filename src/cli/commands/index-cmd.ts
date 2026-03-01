@@ -59,8 +59,9 @@ async function runTextEmbeddingPipeline(opts: {
   makeChunkId: (relPath: string, idx: number) => string;
   progress: ProgressReporter;
   lexicalIndex?: import('../../services/lexical-index.js').LexicalIndex;
+  model?: string;
 }): Promise<{ filesIndexed: number; filesSkipped: number; chunksCreated: number; chunksReused: number; chunksRemoved: number }> {
-  const { type, files, col768, manifest, hashContent, hashText, makeChunkId, progress, lexicalIndex } = opts;
+  const { type, files, col768, manifest, hashContent, hashText, makeChunkId, progress, lexicalIndex, model } = opts;
 
   let filesIndexed = 0;
   let filesSkipped = 0;
@@ -268,7 +269,7 @@ async function runTextEmbeddingPipeline(opts: {
   if (allPendingChunks.length > 0) {
     progress.update(`${type}: loading model...`);
     const { createEmbeddingPipeline } = await import('../../services/model-router.js');
-    pipe = await createEmbeddingPipeline(type);
+    pipe = await createEmbeddingPipeline(type, { modelId: model });
 
     const totalBatches = Math.ceil(allPendingChunks.length / BATCH_SIZE);
 
@@ -326,7 +327,7 @@ export interface IndexStats {
 
 export async function runIndex(
   targetPath: string,
-  options: { ignore: boolean; type?: string; quiet?: boolean; clear?: boolean; format?: string; _silent?: boolean }
+  options: { ignore: boolean; type?: string; quiet?: boolean; clear?: boolean; format?: string; _silent?: boolean; model?: string; clipModel?: string }
 ): Promise<IndexStats> {
   const startTime = Date.now();
   const silent = options._silent ?? false;
@@ -446,6 +447,7 @@ export async function runIndex(
           makeChunkId,
           progress,
           lexicalIndex,
+          model: options.model,
         });
 
         totalFilesIndexed += result.filesIndexed;
@@ -504,7 +506,7 @@ export async function runIndex(
           // Load CLIP pipeline once for the batch
           progress.update('image: loading model...');
           const { createImageEmbeddingPipeline } = await import('../../services/image-embedder.js');
-          const imagePipeline = await createImageEmbeddingPipeline();
+          const imagePipeline = await createImageEmbeddingPipeline({ modelId: options.clipModel });
 
           for (let imgIdx = 0; imgIdx < filesToProcess.length; imgIdx++) {
             const file = filesToProcess[imgIdx];

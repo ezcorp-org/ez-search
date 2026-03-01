@@ -62,6 +62,8 @@ export interface QueryOptions {
   autoIndex?: boolean;
   _silent?: boolean;
   _projectDir?: string;
+  model?: string;
+  clipModel?: string;
 }
 
 export async function runQuery(
@@ -97,7 +99,7 @@ export async function runQuery(
       process.stderr.write(process.stderr.isTTY ? '\r\x1b[Kauto-indexing project...' : 'auto-indexing project...\n');
     }
     const { runIndex } = await import('./index-cmd.js');
-    autoIndexResult = await runIndex(projectDir, { ignore: true, _silent: silent });
+    autoIndexResult = await runIndex(projectDir, { ignore: true, _silent: silent, model: options.model, clipModel: options.clipModel });
     if (!silent && process.stderr.isTTY) process.stderr.write('\r\x1b[K');
 
     // Reload manifest after indexing
@@ -202,7 +204,7 @@ export async function runQuery(
     codeResults = await queryCodeOrText('code', text, {
       effectiveMode, col768, lexicalIndex, fetchCount, threshold, dir: options.dir, topK, silent,
       instructPrefix: `Instruct: Given a search query, retrieve relevant code snippets\nQuery: ${text}`,
-      normalizeResults, filterAndCollapse,
+      normalizeResults, filterAndCollapse, model: options.model,
     });
   }
 
@@ -210,7 +212,7 @@ export async function runQuery(
     textResults = await queryCodeOrText('text', text, {
       effectiveMode, col768, lexicalIndex, fetchCount, threshold, dir: options.dir, topK, silent,
       instructPrefix: `Instruct: Given a search query, retrieve relevant text passages\nQuery: ${text}`,
-      normalizeResults, filterAndCollapse,
+      normalizeResults, filterAndCollapse, model: options.model,
     });
   }
 
@@ -220,7 +222,7 @@ export async function runQuery(
     try {
       if (!silent) process.stderr.write(process.stderr.isTTY ? '\r\x1b[Kimage: loading model...' : 'image: loading model...\n');
       const { createClipTextPipeline } = await import('../../services/image-embedder.js');
-      pipe = await createClipTextPipeline();
+      pipe = await createClipTextPipeline({ modelId: options.clipModel });
       if (!silent && process.stderr.isTTY) process.stderr.write('\r\x1b[K');
 
       // Prompt ensembling: embed 4 variants and average for better retrieval
@@ -396,9 +398,10 @@ async function queryCodeOrText(
     instructPrefix: string;
     normalizeResults: typeof import('../../services/query-utils.js').normalizeResults;
     filterAndCollapse: typeof import('../../services/query-utils.js').filterAndCollapse;
+    model?: string;
   },
 ): Promise<CollapsedResult[]> {
-  const { effectiveMode, col768, lexicalIndex, fetchCount, threshold, dir, topK, silent, instructPrefix, normalizeResults: normalize, filterAndCollapse: collapse } = opts;
+  const { effectiveMode, col768, lexicalIndex, fetchCount, threshold, dir, topK, silent, instructPrefix, normalizeResults: normalize, filterAndCollapse: collapse, model } = opts;
 
   try {
     // ── Semantic results ──────────────────────────────────────────────────
@@ -409,7 +412,7 @@ async function queryCodeOrText(
       let pipe: Awaited<ReturnType<typeof createEmbeddingPipeline>> | null = null;
       try {
         if (!silent) process.stderr.write(process.stderr.isTTY ? `\r\x1b[K${type}: loading model...` : `${type}: loading model...\n`);
-        pipe = await createEmbeddingPipeline(type);
+        pipe = await createEmbeddingPipeline(type, { modelId: model });
         if (!silent && process.stderr.isTTY) process.stderr.write('\r\x1b[K');
         const [queryEmbedding] = await pipe.embed([instructPrefix]);
 
@@ -420,8 +423,9 @@ async function queryCodeOrText(
           rawResults = [];
         }
 
+        const effectiveModelId = pipe.modelId;
         semanticNormalized = normalize(rawResults)
-          .filter((r) => r.modelId.includes('Qwen3-Embedding'))
+          .filter((r) => r.modelId === effectiveModelId || (!model && r.modelId.includes('Qwen3-Embedding')))
           .filter((r) => fileTypeFromPath(r.filePath) === type);
       } finally {
         if (pipe) await pipe.dispose();
@@ -499,7 +503,8 @@ async function queryCodeOrText(
     }
 
     // Semantic-only (or hybrid with no lexical results)
-    return collapse(semanticNormalized, (id) => id.includes('Qwen3-Embedding'), { threshold, dir, topK });
+    // Note: semanticNormalized is already filtered by effectiveModelId above, so pass-through here
+    return collapse(semanticNormalized, () => true, { threshold, dir, topK });
 
   } catch (err) {
     if (!silent) process.stderr.write(`[query] ${type} pipeline error: ${err instanceof Error ? err.message : String(err)}\n`);

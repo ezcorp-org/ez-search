@@ -20,13 +20,15 @@ program
   .option('-q, --quiet', 'suppress status output')
   .option('--clear', 'remove existing index before indexing')
   .option('--format <mode>', 'output format: json (default) or text')
+  .option('--model <path>', 'custom text/code embedding model (HuggingFace ID or local ONNX path)')
+  .option('--clip-model <path>', 'custom CLIP image model (HuggingFace ID or local ONNX path)')
   .addHelpText('after', `
 Examples:
   $ ez-search index .                          Index current directory
   $ ez-search index . --format json            Index and output JSON stats
   $ ez-search index . --clear --type code      Re-index only code files
   $ ez-search index src/ --no-ignore           Index src/ including gitignored files`)
-  .action(async (targetPath: string, options: { ignore: boolean; type?: string; quiet?: boolean; clear?: boolean; format?: string }) => {
+  .action(async (targetPath: string, options: { ignore: boolean; type?: string; quiet?: boolean; clear?: boolean; format?: string; model?: string; clipModel?: string }) => {
     const { runIndex } = await import('./commands/index-cmd.js');
     try {
       await runIndex(targetPath, options);
@@ -50,6 +52,8 @@ program
   .option('--type <type>', 'search specific type only: code|text|image')
   .option('--no-auto-index', 'disable automatic indexing when no index exists')
   .option('--mode <mode>', 'search mode: hybrid (default), semantic, or keyword')
+  .option('--model <path>', 'custom text/code embedding model (HuggingFace ID or local ONNX path)')
+  .option('--clip-model <path>', 'custom CLIP image model (HuggingFace ID or local ONNX path)')
   .addHelpText('after', `
 Examples:
   $ ez-search query "authentication logic"     Hybrid search (auto-indexes if needed)
@@ -58,7 +62,7 @@ Examples:
   $ ez-search query "test" --no-auto-index     Fail if no index exists
   $ ez-search query "handleUserAuth" --mode keyword   Exact identifier search
   $ ez-search query "auth logic" --mode semantic      Pure vector search`)
-  .action(async (text: string, options: { format?: string; topK: string; dir?: string; threshold?: string; type?: string; autoIndex?: boolean; mode?: string }) => {
+  .action(async (text: string, options: { format?: string; topK: string; dir?: string; threshold?: string; type?: string; autoIndex?: boolean; mode?: string; model?: string; clipModel?: string }) => {
     const { runQuery } = await import('./commands/query-cmd.js');
     try {
       await runQuery(text, options);

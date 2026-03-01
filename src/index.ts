@@ -33,6 +33,10 @@ export interface IndexOptions {
   type?: 'code' | 'text' | 'image';
   /** Wipe existing index before indexing */
   clear?: boolean;
+  /** Custom text/code embedding model (HuggingFace ID or local ONNX path) */
+  model?: string;
+  /** Custom CLIP image model (HuggingFace ID or local ONNX path) */
+  clipModel?: string;
 }
 
 /**
@@ -52,6 +56,8 @@ export async function index(
     ignore: options.ignore !== false,
     type: options.type,
     clear: options.clear,
+    model: options.model,
+    clipModel: options.clipModel,
     _silent: true,
   });
 }
@@ -73,6 +79,10 @@ export interface QueryOptions {
   mode?: 'hybrid' | 'semantic' | 'keyword';
   /** Auto-index if no index exists (default: true) */
   autoIndex?: boolean;
+  /** Custom text/code embedding model (HuggingFace ID or local ONNX path) */
+  model?: string;
+  /** Custom CLIP image model (HuggingFace ID or local ONNX path) */
+  clipModel?: string;
 }
 
 /**
@@ -95,6 +105,8 @@ export async function query(
     type: options.type,
     mode: options.mode,
     autoIndex: options.autoIndex,
+    model: options.model,
+    clipModel: options.clipModel,
     _silent: true,
     _projectDir: options.projectDir,
   });
