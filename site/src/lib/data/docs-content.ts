@@ -1,4 +1,4 @@
-// Documents @ez-corp/ez-search v1.2.0 — update when API changes
+// Documents @ez-corp/ez-search v1.3.0 — update when API changes
 
 // ── Sidebar ─────────────────────────────────────────────────────────────────
 
@@ -70,11 +70,14 @@ export const cliCommands: CliCommand[] = [
       { flag: '--quiet', alias: '-q', description: 'Suppress status output' },
       { flag: '--clear', description: 'Remove existing index before indexing' },
       { flag: '--format <mode>', description: 'Output format: json (default) or text', default: 'json' },
+      { flag: '--model <path>', description: 'Custom text/code embedding model (HuggingFace ID or local ONNX path)' },
+      { flag: '--clip-model <path>', description: 'Custom CLIP image model (HuggingFace ID or local ONNX path)' },
     ],
     examples: [
       { label: 'Index the current directory', code: 'ez-search index .' },
       { label: 'Index only code files', code: 'ez-search index . --type code' },
       { label: 'Fresh re-index with quiet output', code: 'ez-search index . --clear -q' },
+      { label: 'Index with a custom model', code: 'ez-search index . --model /path/to/my-model' },
     ],
   },
   {
@@ -89,6 +92,8 @@ export const cliCommands: CliCommand[] = [
       { flag: '--no-auto-index', description: 'Disable automatic indexing when no index exists' },
       { flag: '--mode <mode>', description: 'Search mode: hybrid (default), semantic, or keyword', default: 'hybrid' },
       { flag: '--format <mode>', description: 'Output format: json (default) or text', default: 'json' },
+      { flag: '--model <path>', description: 'Custom text/code embedding model (HuggingFace ID or local ONNX path)' },
+      { flag: '--clip-model <path>', description: 'Custom CLIP image model (HuggingFace ID or local ONNX path)' },
     ],
     examples: [
       { label: 'Search for authentication logic', code: 'ez-search query "authentication logic"' },
@@ -145,6 +150,8 @@ export const libraryFunctions: LibFunction[] = [
       { name: 'options.ignore', type: 'boolean', description: 'Respect .gitignore (default: true)', required: false },
       { name: 'options.type', type: "'code' | 'text' | 'image'", description: 'Filter by file type', required: false },
       { name: 'options.clear', type: 'boolean', description: 'Wipe existing index before indexing', required: false },
+      { name: 'options.model', type: 'string', description: 'Custom text/code embedding model (HuggingFace ID or local ONNX path)', required: false },
+      { name: 'options.clipModel', type: 'string', description: 'Custom CLIP image model (HuggingFace ID or local ONNX path)', required: false },
     ],
     returnType: 'Promise<IndexStats>',
     returnDescription: 'Statistics about indexed files, chunks created/reused, and duration.',
@@ -159,6 +166,10 @@ console.log(\`Indexed \${stats.filesIndexed} files in \${stats.durationMs}ms\`);
       {
         label: 'Index only code files with fresh start',
         code: `const stats = await index('.', { type: 'code', clear: true });`,
+      },
+      {
+        label: 'Index with a custom embedding model',
+        code: `const stats = await index('.', { model: 'my-org/custom-embedding' });`,
       },
     ],
   },
@@ -178,6 +189,8 @@ console.log(\`Indexed \${stats.filesIndexed} files in \${stats.durationMs}ms\`);
       { name: 'options.type', type: "'code' | 'text' | 'image'", description: 'Search specific type only', required: false },
       { name: 'options.mode', type: "'hybrid' | 'semantic' | 'keyword'", description: 'Search mode (default: hybrid)', required: false },
       { name: 'options.autoIndex', type: 'boolean', description: 'Auto-index if missing (default: true)', required: false },
+      { name: 'options.model', type: 'string', description: 'Custom text/code embedding model (HuggingFace ID or local ONNX path)', required: false },
+      { name: 'options.clipModel', type: 'string', description: 'Custom CLIP image model (HuggingFace ID or local ONNX path)', required: false },
     ],
     returnType: 'Promise<QueryResult>',
     returnDescription: 'Results grouped by type, with scores and file locations.',
@@ -262,6 +275,8 @@ export const typeDefinitions: TypeDef[] = [
   ignore?: boolean;
   type?: 'code' | 'text' | 'image';
   clear?: boolean;
+  model?: string;
+  clipModel?: string;
 }`,
   },
   {
@@ -313,6 +328,8 @@ export const typeDefinitions: TypeDef[] = [
   type?: 'code' | 'text' | 'image';
   mode?: SearchMode;
   autoIndex?: boolean;
+  model?: string;
+  clipModel?: string;
 }`,
   },
   {

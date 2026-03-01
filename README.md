@@ -81,6 +81,8 @@ ez-search index . --clear --format text
 | `--no-ignore` | Disable `.gitignore` and `.cursorignore` filtering. |
 | `-q, --quiet` | Suppress status output. |
 | `--format <json\|text>` | Output format. Default: `json`. |
+| `--model <path>` | Custom text/code embedding model (HuggingFace ID or local ONNX path). |
+| `--clip-model <path>` | Custom CLIP image model (HuggingFace ID or local ONNX path). |
 
 ### `ez-search query <text>`
 
@@ -104,6 +106,8 @@ ez-search query "auth logic" --mode semantic       # pure vector search
 | `--mode <hybrid\|semantic\|keyword>` | Search mode. `hybrid` (default) fuses vector + BM25 results. `semantic` uses vector search only. `keyword` uses BM25 keyword matching only. |
 | `--no-auto-index` | Disable automatic indexing when no index exists. |
 | `--format <json\|text>` | Output format. Default: `json`. |
+| `--model <path>` | Custom text/code embedding model (HuggingFace ID or local ONNX path). |
+| `--clip-model <path>` | Custom CLIP image model (HuggingFace ID or local ONNX path). |
 
 JSON output returns a grouped envelope:
 
@@ -205,6 +209,7 @@ ez-search uses convention over configuration. There are no config files.
 - **Model cache:** stored in `~/.ez-search/models/` (shared across projects)
 - **File filtering:** respects `.gitignore` and `.cursorignore` by default; disable with `--no-ignore`
 - **Built-in exclusions:** `node_modules`, `.git`, `dist`, `build`, lockfiles, `.min.js`, `.min.css`, `.map`, and other common noise are always excluded
+- **Custom models:** Use `--model` and `--clip-model` to swap in your own ONNX models (HuggingFace ID or local path). The library API equivalents are `model` and `clipModel` in `IndexOptions`/`QueryOptions`.
 
 ## Troubleshooting
 
