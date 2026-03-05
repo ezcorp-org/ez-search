@@ -23,7 +23,7 @@
 
 import * as path from 'path';
 import * as fsp from 'fs/promises';
-import { rmSync } from 'fs';
+import { rmSync, existsSync } from 'fs';
 import type { FileType, ScannedFile } from '../../types.js';
 import { type ProgressReporter } from '../progress.js';
 import { EzSearchError } from '../../errors.js';
@@ -341,28 +341,26 @@ export async function runIndex(
     // 1. Resolve path
     const absPath = path.resolve(targetPath);
 
-    // 2. Open vector collections
+    // 2. Handle --clear BEFORE opening collections to avoid stale Zvec lock errors.
+    //    rmSync removes .ez-search/ entirely (including manifest.json inside it)
     const { openProjectCollections } = await import('../../services/vector-db.js');
-    let { col768, col512, storagePath } = openProjectCollections(absPath);
-
-    // 3. Handle --clear
-    // rmSync removes .ez-search/ entirely (including manifest.json inside it)
     if (options.clear) {
-      col768.close();
-      col512.close();
-      rmSync(storagePath, { recursive: true, force: true });
-      const reopened = openProjectCollections(absPath);
-      col768 = reopened.col768;
-      col512 = reopened.col512;
-      storagePath = reopened.storagePath;
+      const { resolveProjectStoragePath } = await import('../../config/paths.js');
+      const storagePath = resolveProjectStoragePath(absPath);
+      if (existsSync(storagePath)) {
+        rmSync(storagePath, { recursive: true, force: true });
+      }
     }
+
+    // 3. Open vector collections (fresh if --clear wiped the directory)
+    const { col768, col512, storagePath } = openProjectCollections(absPath);
 
     // 4. Load manifest and helpers
     const { loadManifest, saveManifest, hashContent, hashText, makeChunkId } = await import('../../services/manifest-cache.js');
     const manifest = loadManifest(absPath);
 
     // 4b. Load or create lexical index
-    const { existsSync, readFileSync, writeFileSync } = await import('fs');
+    const { readFileSync, writeFileSync } = await import('fs');
     const { LexicalIndex } = await import('../../services/lexical-index.js');
     const lexicalPath = path.join(storagePath, 'lexical-index.json');
     let lexicalIndex: InstanceType<typeof LexicalIndex>;
