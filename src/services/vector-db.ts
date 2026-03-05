@@ -129,9 +129,19 @@ function ensureSchemaVersion(storageDir: string): void {
  */
 function createCollection(storageDir: string, name: string, dim: number): VectorCollection {
   const collectionPath = path.join(storageDir, name);
-  const handle = existsSync(collectionPath)
-    ? ZVecOpen(collectionPath)
-    : ZVecCreateAndOpen(collectionPath, buildSchema(name, dim));
+  let handle: ReturnType<typeof ZVecOpen>;
+  if (existsSync(collectionPath)) {
+    try {
+      handle = ZVecOpen(collectionPath);
+    } catch {
+      // Stale LOCK files from a crashed process block ZVecOpen.
+      // Wipe the collection and recreate from scratch.
+      rmSync(collectionPath, { recursive: true, force: true });
+      handle = ZVecCreateAndOpen(collectionPath, buildSchema(name, dim));
+    }
+  } else {
+    handle = ZVecCreateAndOpen(collectionPath, buildSchema(name, dim));
+  }
 
   return {
     insert(id: string, embedding: Float32Array, metadata: VectorMetadata): void {
