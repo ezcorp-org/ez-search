@@ -129,19 +129,9 @@ function ensureSchemaVersion(storageDir: string): void {
  */
 function createCollection(storageDir: string, name: string, dim: number): VectorCollection {
   const collectionPath = path.join(storageDir, name);
-  let handle: ReturnType<typeof ZVecOpen>;
-  if (existsSync(collectionPath)) {
-    try {
-      handle = ZVecOpen(collectionPath);
-    } catch {
-      // Stale LOCK files from a crashed process block ZVecOpen.
-      // Wipe the collection and recreate from scratch.
-      rmSync(collectionPath, { recursive: true, force: true });
-      handle = ZVecCreateAndOpen(collectionPath, buildSchema(name, dim));
-    }
-  } else {
-    handle = ZVecCreateAndOpen(collectionPath, buildSchema(name, dim));
-  }
+  const handle = existsSync(collectionPath)
+    ? ZVecOpen(collectionPath)
+    : ZVecCreateAndOpen(collectionPath, buildSchema(name, dim));
 
   return {
     insert(id: string, embedding: Float32Array, metadata: VectorMetadata): void {
@@ -224,10 +214,22 @@ export function openProjectCollections(projectDir: string): ProjectCollections {
   mkdirSync(storageDir, { recursive: true });
   ensureSchemaVersion(storageDir);
 
-  const col768 = createCollection(storageDir, 'col-768', 768);
-  const col512 = createCollection(storageDir, 'col-512', 512);
+  try {
+    const col768 = createCollection(storageDir, 'col-768', 768);
+    const col512 = createCollection(storageDir, 'col-512', 512);
+    return { col768, col512, storagePath: storageDir };
+  } catch {
+    // Stale LOCK files from a crashed process can block ZVecOpen.
+    // Wipe the entire storage dir (collections + manifest) and recreate
+    // from scratch so the vector store and manifest stay in sync.
+    rmSync(storageDir, { recursive: true, force: true });
+    mkdirSync(storageDir, { recursive: true });
+    ensureSchemaVersion(storageDir);
 
-  return { col768, col512, storagePath: storageDir };
+    const col768 = createCollection(storageDir, 'col-768', 768);
+    const col512 = createCollection(storageDir, 'col-512', 512);
+    return { col768, col512, storagePath: storageDir };
+  }
 }
 
 export function openCollection(projectDir: string, name: 'col-768' | 'col-512'): VectorCollection {
