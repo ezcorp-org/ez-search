@@ -132,6 +132,124 @@ describe('scanFiles', () => {
     expect(relPaths).toContain('public.ts');
   });
 
+  test('applies .gitignore and .cursorignore simultaneously', async () => {
+    writeFile(tmpDir, '.gitignore', 'logs/\n');
+    writeFile(tmpDir, '.cursorignore', 'private/\n');
+    writeFile(tmpDir, 'logs/run.ts', 'log');
+    writeFile(tmpDir, 'private/keys.ts', 'keys');
+    writeFile(tmpDir, 'src/main.ts', 'main');
+
+    const results = await collect(scanFiles(tmpDir, { useIgnoreFiles: true }));
+    const relPaths = results.map((r) => r.relativePath);
+
+    expect(relPaths).not.toContain(path.join('logs', 'run.ts'));
+    expect(relPaths).not.toContain(path.join('private', 'keys.ts'));
+    expect(relPaths).toContain(path.join('src', 'main.ts'));
+  });
+
+  test('does NOT honor nested .gitignore in subdirectories (only root is read)', async () => {
+    // Only root .gitignore is loaded — a nested .gitignore should have no effect.
+    writeFile(tmpDir, 'sub/.gitignore', 'secret.ts\n');
+    writeFile(tmpDir, 'sub/secret.ts', 'should still be indexed');
+    writeFile(tmpDir, 'sub/visible.ts', 'visible');
+
+    const results = await collect(scanFiles(tmpDir, { useIgnoreFiles: true }));
+    const relPaths = results.map((r) => r.relativePath);
+
+    expect(relPaths).toContain(path.join('sub', 'secret.ts'));
+    expect(relPaths).toContain(path.join('sub', 'visible.ts'));
+  });
+
+  test('does NOT read .npmignore, .ignore, or .dockerignore', async () => {
+    // Only .gitignore and .cursorignore are loaded.
+    writeFile(tmpDir, '.npmignore', 'npm-only.ts\n');
+    writeFile(tmpDir, '.ignore', 'rg-only.ts\n');
+    writeFile(tmpDir, '.dockerignore', 'docker-only.ts\n');
+    writeFile(tmpDir, 'npm-only.ts', 'a');
+    writeFile(tmpDir, 'rg-only.ts', 'b');
+    writeFile(tmpDir, 'docker-only.ts', 'c');
+
+    const results = await collect(scanFiles(tmpDir, { useIgnoreFiles: true }));
+    const relPaths = results.map((r) => r.relativePath);
+
+    expect(relPaths).toContain('npm-only.ts');
+    expect(relPaths).toContain('rg-only.ts');
+    expect(relPaths).toContain('docker-only.ts');
+  });
+
+  test('honors .gitignore negation (!) to re-include patterns', async () => {
+    writeFile(tmpDir, '.gitignore', '*.log.ts\n!keep.log.ts\n');
+    writeFile(tmpDir, 'drop.log.ts', 'drop');
+    writeFile(tmpDir, 'keep.log.ts', 'keep');
+
+    const results = await collect(scanFiles(tmpDir, { useIgnoreFiles: true }));
+    const relPaths = results.map((r) => r.relativePath);
+
+    expect(relPaths).not.toContain('drop.log.ts');
+    expect(relPaths).toContain('keep.log.ts');
+  });
+
+  test('honors .gitignore wildcard patterns and ** globs', async () => {
+    writeFile(tmpDir, '.gitignore', '*.tmp.ts\n**/generated/**\n');
+    writeFile(tmpDir, 'a.tmp.ts', 'tmp');
+    writeFile(tmpDir, 'src/b.tmp.ts', 'tmp nested');
+    writeFile(tmpDir, 'src/generated/code.ts', 'gen');
+    writeFile(tmpDir, 'deep/nested/generated/x.ts', 'deep gen');
+    writeFile(tmpDir, 'src/keep.ts', 'real');
+
+    const results = await collect(scanFiles(tmpDir, { useIgnoreFiles: true }));
+    const relPaths = results.map((r) => r.relativePath);
+
+    expect(relPaths).not.toContain('a.tmp.ts');
+    expect(relPaths).not.toContain(path.join('src', 'b.tmp.ts'));
+    expect(relPaths).not.toContain(path.join('src', 'generated', 'code.ts'));
+    expect(relPaths).not.toContain(path.join('deep', 'nested', 'generated', 'x.ts'));
+    expect(relPaths).toContain(path.join('src', 'keep.ts'));
+  });
+
+  test('tolerates comments and blank lines in .gitignore', async () => {
+    writeFile(
+      tmpDir,
+      '.gitignore',
+      '# this is a comment\n\n   \nignored.ts\n# trailing comment\n',
+    );
+    writeFile(tmpDir, 'ignored.ts', 'no');
+    writeFile(tmpDir, 'kept.ts', 'yes');
+
+    const results = await collect(scanFiles(tmpDir, { useIgnoreFiles: true }));
+    const relPaths = results.map((r) => r.relativePath);
+
+    expect(relPaths).not.toContain('ignored.ts');
+    expect(relPaths).toContain('kept.ts');
+  });
+
+  test('built-in exclusions stay active even when useIgnoreFiles=false', async () => {
+    // useIgnoreFiles=false disables .gitignore/.cursorignore but NOT BUILTIN_EXCLUSIONS.
+    writeFile(tmpDir, 'node_modules/pkg/index.ts', 'mod');
+    writeFile(tmpDir, 'dist/out.ts', 'dist');
+    writeFile(tmpDir, 'pnpm-lock.yaml', 'lock');
+    writeFile(tmpDir, 'src/main.ts', 'main');
+
+    const results = await collect(scanFiles(tmpDir, { useIgnoreFiles: false }));
+    const relPaths = results.map((r) => r.relativePath);
+
+    expect(relPaths).not.toContain(path.join('node_modules', 'pkg', 'index.ts'));
+    expect(relPaths).not.toContain(path.join('dist', 'out.ts'));
+    expect(relPaths).not.toContain('pnpm-lock.yaml');
+    expect(relPaths).toContain(path.join('src', 'main.ts'));
+  });
+
+  test('an empty .gitignore is a no-op', async () => {
+    writeFile(tmpDir, '.gitignore', '');
+    writeFile(tmpDir, 'a.ts', 'a');
+    writeFile(tmpDir, 'b.ts', 'b');
+
+    const results = await collect(scanFiles(tmpDir, { useIgnoreFiles: true }));
+    const relPaths = results.map((r) => r.relativePath).sort();
+
+    expect(relPaths).toEqual(['a.ts', 'b.ts']);
+  });
+
   test('type filter: yields only code files when typeFilter=code', async () => {
     writeFile(tmpDir, 'app.ts', 'code');
     writeFile(tmpDir, 'config.json', '{}');

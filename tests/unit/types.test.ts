@@ -34,4 +34,26 @@ describe('BUILTIN_EXCLUSIONS', () => {
     expect(BUILTIN_EXCLUSIONS).not.toContain('src');
     expect(BUILTIN_EXCLUSIONS).not.toContain('lib');
   });
+
+  test('includes common build output directories', () => {
+    expect(BUILTIN_EXCLUSIONS).toContain('dist');
+    expect(BUILTIN_EXCLUSIONS).toContain('build');
+    expect(BUILTIN_EXCLUSIONS).toContain('.next');
+    expect(BUILTIN_EXCLUSIONS).toContain('.nuxt');
+    expect(BUILTIN_EXCLUSIONS).toContain('coverage');
+  });
+
+  test('includes lockfile patterns', () => {
+    expect(BUILTIN_EXCLUSIONS).toContain('*.lock');
+    expect(BUILTIN_EXCLUSIONS).toContain('package-lock.json');
+    expect(BUILTIN_EXCLUSIONS).toContain('yarn.lock');
+    expect(BUILTIN_EXCLUSIONS).toContain('pnpm-lock.yaml');
+    expect(BUILTIN_EXCLUSIONS).toContain('bun.lockb');
+  });
+
+  test('includes minified bundles and source maps', () => {
+    expect(BUILTIN_EXCLUSIONS).toContain('*.min.js');
+    expect(BUILTIN_EXCLUSIONS).toContain('*.min.css');
+    expect(BUILTIN_EXCLUSIONS).toContain('*.map');
+  });
 });

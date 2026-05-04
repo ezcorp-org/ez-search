@@ -108,6 +108,65 @@ describe('CLI', () => {
     expect(parsed.staleFileCount).toBeGreaterThanOrEqual(1);
   }, 120_000);
 
+  test('ez-search index respects .gitignore by default', async () => {
+    fs.writeFileSync(path.join(tmpDir, '.gitignore'), 'secret/\n');
+    fs.mkdirSync(path.join(tmpDir, 'secret'));
+    fs.writeFileSync(path.join(tmpDir, 'secret', 'private.ts'), 'export const k = 1;');
+    fs.writeFileSync(path.join(tmpDir, 'visible.ts'), 'export const v = 1;');
+
+    const { stdout, exitCode } = await runCLI(['index', '.', '--format', 'json'], tmpDir);
+
+    if (exitCode !== 0) {
+      // Vector DB / model not available — skip gracefully (matches existing tests)
+      return;
+    }
+    const parsed = JSON.parse(stdout);
+    expect(parsed.filesScanned).toBe(1);
+    expect(parsed.filesIndexed).toBe(1);
+  }, 120_000);
+
+  test('ez-search index --no-ignore includes gitignored files', async () => {
+    fs.writeFileSync(path.join(tmpDir, '.gitignore'), 'secret/\n');
+    fs.mkdirSync(path.join(tmpDir, 'secret'));
+    fs.writeFileSync(path.join(tmpDir, 'secret', 'private.ts'), 'export const k = 1;');
+    fs.writeFileSync(path.join(tmpDir, 'visible.ts'), 'export const v = 1;');
+
+    const { stdout, exitCode } = await runCLI(
+      ['index', '.', '--no-ignore', '--format', 'json'],
+      tmpDir,
+    );
+
+    if (exitCode !== 0) {
+      return;
+    }
+    const parsed = JSON.parse(stdout);
+    // .gitignore itself has no recognized extension, so only the .ts files count.
+    expect(parsed.filesScanned).toBe(2);
+    expect(parsed.filesIndexed).toBe(2);
+  }, 120_000);
+
+  test('ez-search index always excludes node_modules even with --no-ignore', async () => {
+    // Built-in exclusions are not affected by --no-ignore.
+    fs.mkdirSync(path.join(tmpDir, 'node_modules', 'pkg'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, 'node_modules', 'pkg', 'index.ts'),
+      'export const x = 1;',
+    );
+    fs.writeFileSync(path.join(tmpDir, 'app.ts'), 'export const a = 1;');
+
+    const { stdout, exitCode } = await runCLI(
+      ['index', '.', '--no-ignore', '--format', 'json'],
+      tmpDir,
+    );
+
+    if (exitCode !== 0) {
+      return;
+    }
+    const parsed = JSON.parse(stdout);
+    expect(parsed.filesScanned).toBe(1);
+    expect(parsed.filesIndexed).toBe(1);
+  }, 120_000);
+
   test('ez-search query auto-indexes when no index exists', async () => {
     const filePath = path.join(tmpDir, 'hello.ts');
     fs.writeFileSync(filePath, 'export function greet() { return "hello"; }');
